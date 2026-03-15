@@ -5,61 +5,19 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { formatINR } from "@/lib/utils";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const FEATURED_PRODUCTS = [
-  {
-    id: "1",
-    name: "Terracotta Bloom Vase",
-    price: "Rs.2,499",
-    image:
-      "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?q=80&w=800&auto=format&fit=crop",
-    slug: "terracotta-bloom-vase",
-  },
-  {
-    id: "2",
-    name: "Brass Mandala Wall Art",
-    price: "Rs.4,999",
-    image:
-      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=800&auto=format&fit=crop",
-    slug: "brass-mandala-wall-art",
-  },
-  {
-    id: "3",
-    name: "Handwoven Jute Rug",
-    price: "Rs.3,299",
-    image:
-      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=800&auto=format&fit=crop",
-    slug: "handwoven-jute-rug",
-  },
-  {
-    id: "4",
-    name: "Copper Diya Set",
-    price: "Rs.1,899",
-    image:
-      "https://images.unsplash.com/photo-1513519245088-0e12902e35ca?q=80&w=800&auto=format&fit=crop",
-    slug: "copper-diya-set",
-  },
-  {
-    id: "5",
-    name: "Silk Ikat Cushion",
-    price: "Rs.1,499",
-    image:
-      "https://images.unsplash.com/photo-1584100936595-c0c6b4b3e0c5?q=80&w=800&auto=format&fit=crop",
-    slug: "silk-ikat-cushion",
-  },
-  {
-    id: "6",
-    name: "Marble Tray Set",
-    price: "Rs.3,799",
-    image:
-      "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?q=80&w=800&auto=format&fit=crop",
-    slug: "marble-tray-set",
-  },
-];
+interface FeaturedProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  images: string[];
+}
 
-export default function FeaturedScroll() {
+export default function FeaturedScroll({ products }: { products: FeaturedProduct[] }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -129,7 +87,7 @@ export default function FeaturedScroll() {
 
         {/* Horizontal scroll container */}
         <div ref={scrollContainerRef} className="flex gap-8 pl-6 lg:pl-16 pb-24">
-          {FEATURED_PRODUCTS.map((product, i) => (
+          {products.map((product, i) => (
             <Link
               key={product.id}
               href={`/products/${product.slug}`}
@@ -139,7 +97,7 @@ export default function FeaturedScroll() {
               <div className="relative overflow-hidden aspect-[3/4] bg-border">
                 <div
                   className="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                  style={{ backgroundImage: `url('${product.image}')` }}
+                  style={{ backgroundImage: `url('${product.images?.[0] || ""}')` }}
                 />
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-dark/0 group-hover:bg-dark/20 transition-colors duration-500" />
@@ -155,7 +113,7 @@ export default function FeaturedScroll() {
                   {product.name}
                 </h3>
                 <p className="text-muted text-sm mt-1 tracking-wider">
-                  {product.price}
+                  {formatINR(product.price)}
                 </p>
               </div>
             </Link>

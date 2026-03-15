@@ -24,7 +24,7 @@ export default function Header() {
     { href: "/products", label: "Shop" },
     { href: "/products?category=living-room", label: "Living Room" },
     { href: "/products?category=bedroom", label: "Bedroom" },
-    { href: "/products?category=kitchen", label: "Kitchen" },
+    { href: "/products?category=kitchen-dining", label: "Kitchen" },
     { href: "/products?category=lighting", label: "Lighting" },
   ];
 

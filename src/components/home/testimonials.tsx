@@ -12,7 +12,7 @@ const TESTIMONIALS = [
     name: "Priya Sharma",
     location: "Mumbai",
     rating: 5,
-    text: "The brass mandala wall art is absolutely stunning. The craftsmanship is exquisite and it&apos;s become the centerpiece of my living room.",
+    text: "The brass mandala wall art is absolutely stunning. The craftsmanship is exquisite and it's become the centerpiece of my living room.",
     product: "Brass Mandala Wall Art",
   },
   {

@@ -7,38 +7,26 @@ import Link from "next/link";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const CATEGORIES = [
-  {
-    name: "Living Room",
-    slug: "living-room",
-    image:
-      "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=800&auto=format&fit=crop",
-    description: "Sofas, tables, rugs & wall art",
-  },
-  {
-    name: "Bedroom",
-    slug: "bedroom",
-    image:
-      "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=800&auto=format&fit=crop",
-    description: "Bedding, lamps & accents",
-  },
-  {
-    name: "Kitchen",
-    slug: "kitchen",
-    image:
-      "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=800&auto=format&fit=crop",
-    description: "Serveware, storage & textiles",
-  },
-  {
-    name: "Lighting",
-    slug: "lighting",
-    image:
-      "https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?q=80&w=800&auto=format&fit=crop",
-    description: "Pendant lamps, diyas & candles",
-  },
-];
+interface CategoryData {
+  name: string;
+  slug: string;
+  image_url: string | null;
+  description: string | null;
+}
 
-export default function CategoryCards() {
+// Fallback images for categories without custom images
+const CATEGORY_IMAGES: Record<string, string> = {
+  "living-room":
+    "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=800&auto=format&fit=crop",
+  bedroom:
+    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=800&auto=format&fit=crop",
+  "kitchen-dining":
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=800&auto=format&fit=crop",
+  lighting:
+    "https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?q=80&w=800&auto=format&fit=crop",
+};
+
+export default function CategoryCards({ categories }: { categories: CategoryData[] }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLAnchorElement | null)[]>([]);
   const headingRef = useRef<HTMLDivElement>(null);
@@ -142,7 +130,7 @@ export default function CategoryCards() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {CATEGORIES.map((category, i) => (
+          {categories.map((category, i) => (
             <Link
               key={category.slug}
               ref={(el) => { cardsRef.current[i] = el; }}
@@ -156,7 +144,7 @@ export default function CategoryCards() {
               {/* Image */}
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                style={{ backgroundImage: `url('${category.image}')` }}
+                style={{ backgroundImage: `url('${category.image_url || CATEGORY_IMAGES[category.slug] || ""}')` }}
               />
 
               {/* Gradient overlay */}

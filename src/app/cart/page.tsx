@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag } from "lucide-react";
@@ -8,9 +9,14 @@ import { formatINR } from "@/lib/utils";
 import { SHIPPING_RATES } from "@/lib/constants";
 
 export default function CartPage() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
   const { items, removeItem, updateQuantity } = useCartStore();
   const subtotal = useCartStore((s) => s.getSubtotal());
   const itemCount = useCartStore((s) => s.getItemCount());
+
+  if (!hydrated) return null;
   const shippingCost =
     subtotal >= SHIPPING_RATES.freeAbove ? 0 : SHIPPING_RATES.standard;
   const total = subtotal + shippingCost;

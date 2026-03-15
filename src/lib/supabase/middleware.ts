@@ -33,26 +33,23 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes
+  // Protected routes — exclude auth pages from protection
+  const pathname = request.nextUrl.pathname;
+  const authPages = ["/account/login", "/account/register"];
+  const isAuthPage = authPages.includes(pathname);
+
   const protectedPaths = ["/checkout", "/account"];
   const adminPaths = ["/admin"];
-  const pathname = request.nextUrl.pathname;
 
-  const isProtected = protectedPaths.some((path) =>
-    pathname.startsWith(path)
-  );
+  const isProtected =
+    !isAuthPage &&
+    protectedPaths.some((path) => pathname.startsWith(path));
   const isAdmin = adminPaths.some((path) => pathname.startsWith(path));
 
-  if (isProtected && !user) {
+  if ((isProtected || isAdmin) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/account/login";
-    url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  if (isAdmin && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/account/login";
+    if (!isAdmin) url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 

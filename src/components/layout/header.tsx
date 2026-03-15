@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, Menu, X, Search, User } from "lucide-react";
 import { useCartStore } from "@/stores/cart-store";
+import { useCartDrawerStore } from "@/stores/cart-drawer-store";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,6 +12,7 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const itemCount = useCartStore((s) => s.getItemCount());
+  const openCart = useCartDrawerStore((s) => s.open);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -118,8 +120,8 @@ export default function Header() {
               >
                 <User className="w-5 h-5" />
               </Link>
-              <Link
-                href="/cart"
+              <button
+                onClick={openCart}
                 className="p-2 hover:text-terracotta transition-colors relative"
                 aria-label="Cart"
               >
@@ -133,7 +135,7 @@ export default function Header() {
                     {itemCount}
                   </motion.span>
                 )}
-              </Link>
+              </button>
             </div>
           </div>
         </div>

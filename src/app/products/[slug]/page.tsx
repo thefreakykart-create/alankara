@@ -6,6 +6,7 @@ import ProductGallery from "@/components/product/product-gallery";
 import AddToCartButton from "@/components/product/add-to-cart-button";
 import ProductDetailsAccordion from "@/components/product/product-details-accordion";
 import ProductCard from "@/components/product/product-card";
+import StickyAddToCart from "@/components/product/sticky-add-to-cart";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -58,8 +59,31 @@ export default async function ProductPage({ params }: PageProps) {
     .neq("id", product.id)
     .limit(4);
 
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images,
+    sku: product.sku,
+    offers: {
+      "@type": "Offer",
+      price: (product.price / 100).toFixed(2),
+      priceCurrency: "INR",
+      availability:
+        product.stock_quantity > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+    },
+  };
+
   return (
     <main className="min-h-screen pt-28 pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="mb-8 flex items-center gap-2 text-xs text-muted tracking-wide">
@@ -167,6 +191,9 @@ export default async function ProductPage({ params }: PageProps) {
           </section>
         )}
       </div>
+
+      {/* Sticky mobile add-to-cart */}
+      <StickyAddToCart product={product} />
     </main>
   );
 }

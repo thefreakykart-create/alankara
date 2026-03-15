@@ -3,6 +3,8 @@ import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { ToastProvider } from "@/components/ui/toast";
+import CartDrawer from "@/components/cart/cart-drawer";
 
 
 
@@ -42,9 +44,12 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${dmSans.variable} font-sans antialiased grain`}
       >
+        <ToastProvider>
           <Header />
+          <CartDrawer />
           <main>{children}</main>
           <Footer />
+        </ToastProvider>
       </body>
     </html>
   );

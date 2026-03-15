@@ -6,10 +6,14 @@ import { motion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
 import { formatINR, getDiscountPercent } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
+import { useCartDrawerStore } from "@/stores/cart-drawer-store";
+import { useToast } from "@/components/ui/toast";
 import type { Product } from "@/lib/types/product";
 
 export default function ProductCard({ product }: { product: Product }) {
   const addItem = useCartStore((s) => s.addItem);
+  const openCart = useCartDrawerStore((s) => s.open);
+  const { toast } = useToast();
   const discount = product.compare_at_price
     ? getDiscountPercent(product.price, product.compare_at_price)
     : 0;
@@ -25,6 +29,8 @@ export default function ProductCard({ product }: { product: Product }) {
       quantity: 1,
       slug: product.slug,
     });
+    toast(`${product.name} added to cart`);
+    openCart();
   };
 
   return (

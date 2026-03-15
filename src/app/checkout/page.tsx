@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock } from "lucide-react";
 import { useCartStore } from "@/stores/cart-store";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast";
 import { formatINR } from "@/lib/utils";
 import { INDIAN_STATES, PINCODE_REGEX, SHIPPING_RATES } from "@/lib/constants";
 
@@ -17,6 +19,7 @@ export default function CheckoutPage() {
     subtotal >= SHIPPING_RATES.freeAbove ? 0 : SHIPPING_RATES.standard;
   const total = subtotal + shippingCost;
 
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -45,12 +48,53 @@ export default function CheckoutPage() {
     if (!isValid || loading) return;
     setLoading(true);
 
-    // TODO: Integrate PhonePe payment gateway
-    // For now, simulate order placement
-    await new Promise((r) => setTimeout(r, 1500));
-    clearCart();
-    router.push("/checkout/success");
-    setLoading(false);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast("Please sign in to place an order", "error");
+        router.push("/account/login");
+        return;
+      }
+
+      const res = await fetch("/api/phonepe/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          items,
+          shippingAddress: form,
+          subtotal,
+          shippingCost,
+          total,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast(data.error || "Failed to place order", "error");
+        return;
+      }
+
+      // If PhonePe redirect URL is returned, redirect to payment page
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      // Demo mode — order created successfully without payment
+      clearCart();
+      toast("Order placed successfully!");
+      router.push(`/checkout/success?orderId=${data.orderId}`);
+    } catch {
+      toast("Something went wrong. Please try again.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (items.length === 0) {

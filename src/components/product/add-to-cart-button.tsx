@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ShoppingBag, Check, Minus, Plus } from "lucide-react";
 import { useCartStore } from "@/stores/cart-store";
+import { useCartDrawerStore } from "@/stores/cart-drawer-store";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/types/product";
 
@@ -10,6 +12,8 @@ export default function AddToCartButton({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
+  const openCart = useCartDrawerStore((s) => s.open);
+  const { toast } = useToast();
 
   const inStock = product.stock_quantity > 0;
   const maxQty = Math.min(product.stock_quantity, 10);
@@ -24,6 +28,8 @@ export default function AddToCartButton({ product }: { product: Product }) {
       slug: product.slug,
     });
     setAdded(true);
+    toast(`${product.name} added to cart`);
+    openCart();
     setTimeout(() => setAdded(false), 2000);
   };
 

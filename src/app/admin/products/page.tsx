@@ -38,13 +38,22 @@ export default async function AdminProductsPage() {
           <h1 className="font-serif text-2xl lg:text-3xl text-charcoal tracking-wide">
             Products
           </h1>
-          <Link
-            href="/admin/products/new"
-            className="flex items-center gap-2 bg-charcoal text-warm-white text-sm font-medium tracking-wider uppercase px-5 py-2.5 rounded-sm hover:bg-terracotta transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Product
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/products/publish"
+              className="flex items-center gap-2 bg-terracotta text-warm-white text-sm font-medium tracking-wider uppercase px-5 py-2.5 rounded-sm hover:bg-charcoal transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Publish Wall Art
+            </Link>
+            <Link
+              href="/admin/products/new"
+              className="flex items-center gap-2 border border-charcoal text-charcoal text-sm font-medium tracking-wider uppercase px-5 py-2.5 rounded-sm hover:bg-charcoal hover:text-warm-white transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add General Product
+            </Link>
+          </div>
         </div>
 
         <div className="bg-warm-white rounded-sm overflow-hidden">

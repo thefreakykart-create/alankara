@@ -21,13 +21,15 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) =>
         set((state) => {
+          // For variants, match by variantId; for general products match by productId
+          const key = item.variantId ?? item.productId;
           const existing = state.items.find(
-            (i) => i.productId === item.productId
+            (i) => (i.variantId ?? i.productId) === key
           );
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.productId === item.productId
+                (i.variantId ?? i.productId) === key
                   ? { ...i, quantity: i.quantity + item.quantity }
                   : i
               ),
@@ -38,16 +40,18 @@ export const useCartStore = create<CartStore>()(
 
       removeItem: (productId) =>
         set((state) => ({
-          items: state.items.filter((i) => i.productId !== productId),
+          items: state.items.filter(
+            (i) => (i.variantId ?? i.productId) !== productId
+          ),
         })),
 
       updateQuantity: (productId, quantity) =>
         set((state) => ({
           items:
             quantity <= 0
-              ? state.items.filter((i) => i.productId !== productId)
+              ? state.items.filter((i) => (i.variantId ?? i.productId) !== productId)
               : state.items.map((i) =>
-                  i.productId === productId ? { ...i, quantity } : i
+                  (i.variantId ?? i.productId) === productId ? { ...i, quantity } : i
                 ),
         })),
 

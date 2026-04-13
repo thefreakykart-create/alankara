@@ -177,6 +177,7 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
         <TryOnWallModal
           productName={product.name}
           activeImage={galleryImages[0]}
+          activeSize={activeSize}
           onClose={() => setShowAR(false)}
         />
       )}

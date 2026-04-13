@@ -28,6 +28,7 @@ export default function Header() {
     { href: "/products?category=bedroom", label: "Bedroom" },
     { href: "/products?category=kitchen-dining", label: "Kitchen" },
     { href: "/products?category=lighting", label: "Lighting" },
+    { href: "/planner", label: "Wall Planner ✦" },
   ];
 
   return (

@@ -3,8 +3,14 @@ import { updateCategoryAction } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
 
 export const metadata: Metadata = {
-  title: "Manage Categories — Alankara Admin",
+  title: "Categories — Alankara Admin",
 };
+
+const inputCls =
+  "w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+const textareaCls =
+  "w-full px-3 py-2.5 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none";
+const labelCls = "block text-xs font-medium text-zinc-500 mb-1.5";
 
 export default async function AdminCategoriesPage() {
   const { supabase } = await requireAdmin();
@@ -17,157 +23,120 @@ export default async function AdminCategoriesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-          Catalog Structure
-        </p>
-        <h2 className="mt-1 font-serif text-3xl text-charcoal">Categories</h2>
-        <p className="mt-2 text-sm text-muted">
-          Manage storefront groupings, collection descriptions, and homepage
-          imagery.
+        <h1 className="text-xl font-semibold text-zinc-900">Categories</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Manage storefront groupings, descriptions, and display order.
         </p>
       </div>
 
-      <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-        <h3 className="font-medium text-charcoal">Create Category</h3>
-        <form action={updateCategoryAction} className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="space-y-1">
-            <span className="text-xs uppercase tracking-[0.16em] text-muted">
-              Name
-            </span>
-            <input
-              name="name"
-              required
-              className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-xs uppercase tracking-[0.16em] text-muted">
-              Slug
-            </span>
+      {/* Create new */}
+      <div className="bg-white border border-zinc-200 rounded-lg p-5">
+        <h2 className="text-sm font-semibold text-zinc-900 mb-4">New Category</h2>
+        <form action={updateCategoryAction} className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className={labelCls}>Name *</label>
+            <input name="name" required className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Slug</label>
             <input
               name="slug"
               placeholder="auto-generated if blank"
-              className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+              className={inputCls}
             />
-          </label>
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-xs uppercase tracking-[0.16em] text-muted">
-              Description
-            </span>
-            <textarea
-              name="description"
-              rows={3}
-              className="w-full rounded-sm border border-border px-3 py-3 text-sm focus:border-charcoal focus:outline-none"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-xs uppercase tracking-[0.16em] text-muted">
-              Image URL
-            </span>
-            <input
-              name="imageUrl"
-              className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-xs uppercase tracking-[0.16em] text-muted">
-              Display Order
-            </span>
+          </div>
+          <div className="md:col-span-2">
+            <label className={labelCls}>Description</label>
+            <textarea name="description" rows={3} className={textareaCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Image URL</label>
+            <input name="imageUrl" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Display Order</label>
             <input
               name="displayOrder"
               type="number"
               defaultValue={categories?.length ?? 0}
-              className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+              className={inputCls}
             />
-          </label>
+          </div>
           <div className="md:col-span-2">
             <button
               type="submit"
-              className="rounded-sm bg-charcoal px-5 py-2.5 text-xs font-medium uppercase tracking-[0.12em] text-warm-white transition-colors hover:bg-terracotta"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors"
             >
               Add Category
             </button>
           </div>
         </form>
-      </section>
+      </div>
 
-      <section className="space-y-4">
-        {categories?.map((category) => (
+      {/* Existing categories */}
+      <div className="space-y-3">
+        {categories?.map((cat) => (
           <form
-            key={category.id}
+            key={cat.id}
             action={updateCategoryAction}
-            className="rounded-sm border border-border bg-warm-white p-5 shadow-sm"
+            className="bg-white border border-zinc-200 rounded-lg p-5"
           >
-            <input type="hidden" name="id" value={category.id} />
+            <input type="hidden" name="id" value={cat.id} />
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Name
-                </span>
+              <div>
+                <label className={labelCls}>Name</label>
                 <input
                   name="name"
-                  defaultValue={category.name}
+                  defaultValue={cat.name}
                   required
-                  className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                  className={inputCls}
                 />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Slug
-                </span>
-                <input
-                  name="slug"
-                  defaultValue={category.slug}
-                  className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-                />
-              </label>
-              <label className="space-y-1 md:col-span-2">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Description
-                </span>
+              </div>
+              <div>
+                <label className={labelCls}>Slug</label>
+                <input name="slug" defaultValue={cat.slug} className={inputCls} />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelCls}>Description</label>
                 <textarea
                   name="description"
-                  rows={3}
-                  defaultValue={category.description ?? ""}
-                  className="w-full rounded-sm border border-border px-3 py-3 text-sm focus:border-charcoal focus:outline-none"
+                  rows={2}
+                  defaultValue={cat.description ?? ""}
+                  className={textareaCls}
                 />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Image URL
-                </span>
+              </div>
+              <div>
+                <label className={labelCls}>Image URL</label>
                 <input
                   name="imageUrl"
-                  defaultValue={category.image_url ?? ""}
-                  className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                  defaultValue={cat.image_url ?? ""}
+                  className={inputCls}
                 />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Display Order
-                </span>
+              </div>
+              <div>
+                <label className={labelCls}>Display Order</label>
                 <input
                   name="displayOrder"
                   type="number"
-                  defaultValue={category.display_order}
-                  className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                  defaultValue={cat.display_order}
+                  className={inputCls}
                 />
-              </label>
+              </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-xs text-muted">
-                Created {new Date(category.created_at).toLocaleDateString("en-IN")}
+              <p className="text-xs text-zinc-400">
+                Created {new Date(cat.created_at).toLocaleDateString("en-IN")}
               </p>
               <button
                 type="submit"
-                className="rounded-sm border border-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-charcoal transition-colors hover:bg-charcoal hover:text-warm-white"
+                className="px-4 py-2 border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-sm font-medium rounded-md transition-colors"
               >
                 Save
               </button>
             </div>
           </form>
         ))}
-      </section>
+      </div>
     </div>
   );
 }

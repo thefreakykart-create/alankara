@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Users,
+  AlertTriangle,
 } from "lucide-react";
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin";
@@ -13,8 +14,21 @@ import { formatINR } from "@/lib/utils";
 import { ORDER_STATUS_LABELS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard — Alankara",
+  title: "Dashboard — Alankara Admin",
 };
+
+function statusClass(status: string) {
+  const map: Record<string, string> = {
+    pending: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+    confirmed: "bg-blue-50 text-blue-700 border border-blue-200",
+    processing: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+    shipped: "bg-purple-50 text-purple-700 border border-purple-200",
+    delivered: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    cancelled: "bg-red-50 text-red-700 border border-red-200",
+    refunded: "bg-zinc-100 text-zinc-600 border border-zinc-200",
+  };
+  return map[status] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200";
+}
 
 export default async function AdminDashboard() {
   const { supabase } = await requireAdmin();
@@ -29,16 +43,13 @@ export default async function AdminDashboard() {
   ] = await Promise.all([
     supabase.from("products").select("*", { count: "exact", head: true }),
     supabase.from("categories").select("*", { count: "exact", head: true }),
-    supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "customer"),
+    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "customer"),
     supabase.from("orders").select("id, total, status"),
     supabase
       .from("orders")
       .select("id, order_number, created_at, total, status")
       .order("created_at", { ascending: false })
-      .limit(6),
+      .limit(8),
     supabase
       .from("products")
       .select("id, name, stock_quantity")
@@ -50,226 +61,204 @@ export default async function AdminDashboard() {
 
   const revenue =
     orders?.reduce(
-      (sum, order) =>
-        order.status === "cancelled" || order.status === "refunded"
-          ? sum
-          : sum + order.total,
+      (sum, o) =>
+        o.status === "cancelled" || o.status === "refunded" ? sum : sum + o.total,
       0
     ) ?? 0;
   const pendingOrders =
-    orders?.filter((order) =>
-      ["pending", "confirmed", "processing", "shipped"].includes(order.status)
+    orders?.filter((o) =>
+      ["pending", "confirmed", "processing", "shipped"].includes(o.status)
     ).length ?? 0;
 
-  const cards = [
+  const stats = [
     {
-      label: "Revenue",
+      label: "Lifetime Revenue",
       value: formatINR(revenue),
-      hint: "Lifetime order value excluding cancelled/refunded",
+      sub: "Excl. cancelled & refunded",
       href: "/admin/orders",
       icon: TrendingUp,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
     },
     {
-      label: "Orders",
+      label: "Total Orders",
       value: String(orders?.length ?? 0),
-      hint: `${pendingOrders} still in fulfillment`,
+      sub: `${pendingOrders} in fulfillment`,
       href: "/admin/orders",
       icon: ShoppingCart,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
     },
     {
       label: "Products",
       value: String(productCount ?? 0),
-      hint: `${lowStockProducts?.length ?? 0} low-stock general products`,
+      sub: `${categoryCount ?? 0} categories`,
       href: "/admin/products",
       icon: Package,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
     },
     {
       label: "Customers",
       value: String(customerCount ?? 0),
-      hint: `${categoryCount ?? 0} categories configured`,
+      sub: "Registered accounts",
       href: "/admin/customers",
       icon: Users,
+      color: "text-purple-600",
+      bg: "bg-purple-50",
     },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-          Overview
-        </p>
-        <h2 className="mt-1 font-serif text-3xl text-charcoal">
-          Business Snapshot
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          Track sales, fulfillment, inventory pressure, and jump straight into
-          the areas that need attention.
+        <h1 className="text-xl font-semibold text-zinc-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Welcome back — here&apos;s what&apos;s happening in your store.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
+      {/* Stat cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((s) => (
           <Link
-            key={card.label}
-            href={card.href}
-            className="rounded-sm border border-border bg-warm-white p-5 shadow-sm transition-transform hover:-translate-y-0.5"
+            key={s.label}
+            href={s.href}
+            className="bg-white border border-zinc-200 rounded-lg p-5 flex items-start gap-4 hover:border-zinc-300 hover:shadow-sm transition-all"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-muted">
-                  {card.label}
-                </p>
-                <p className="mt-3 font-serif text-3xl text-charcoal">
-                  {card.value}
-                </p>
-                <p className="mt-2 text-sm text-muted">{card.hint}</p>
-              </div>
-              <card.icon className="h-6 w-6 text-terracotta" />
+            <div className={`${s.bg} ${s.color} p-2.5 rounded-lg flex-none`}>
+              <s.icon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-zinc-500">{s.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-900 tabular-nums">{s.value}</p>
+              <p className="mt-0.5 text-xs text-zinc-400">{s.sub}</p>
             </div>
           </Link>
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
-        <section className="rounded-sm border border-border bg-warm-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <div>
-              <h3 className="font-medium text-charcoal">Recent Orders</h3>
-              <p className="text-sm text-muted">
-                Latest order activity across the storefront.
-              </p>
-            </div>
+      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+        {/* Recent orders */}
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-900">Recent Orders</h2>
             <Link
               href="/admin/orders"
-              className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-charcoal hover:text-terracotta"
+              className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              View all
-              <ArrowRight className="h-3.5 w-3.5" />
+              View all <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {recentOrders && recentOrders.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-cream/40">
-                    <th className="px-5 py-3 text-left text-xs uppercase tracking-[0.16em] text-muted">
-                      Order
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs uppercase tracking-[0.16em] text-muted">
-                      Status
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs uppercase tracking-[0.16em] text-muted">
-                      Total
-                    </th>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-zinc-50 border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500">Order</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500">Status</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {recentOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <Link
+                        href={`/admin/orders/${order.id}`}
+                        className="font-medium text-zinc-900 hover:text-indigo-600 transition-colors"
+                      >
+                        {order.order_number}
+                      </Link>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        {new Date(order.created_at).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusClass(order.status)}`}>
+                        {ORDER_STATUS_LABELS[order.status] ?? order.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-right font-medium text-zinc-900 tabular-nums">
+                      {formatINR(order.total)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-border/70">
-                      <td className="px-5 py-4">
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          className="font-medium text-charcoal hover:text-terracotta"
-                        >
-                          {order.order_number}
-                        </Link>
-                        <p className="mt-1 text-xs text-muted">
-                          {new Date(order.created_at).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            }
-                          )}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="rounded-full bg-cream px-2.5 py-1 text-xs font-medium text-charcoal">
-                          {ORDER_STATUS_LABELS[order.status] ?? order.status}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-right font-medium text-charcoal">
-                        {formatINR(order.total)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           ) : (
-            <div className="px-5 py-8 text-sm text-muted">No orders yet.</div>
-          )}
-        </section>
-
-        <div className="space-y-6">
-          <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <FolderKanban className="h-5 w-5 text-terracotta" />
-              <div>
-                <h3 className="font-medium text-charcoal">Catalog Health</h3>
-                <p className="text-sm text-muted">
-                  Keep categories and inventory in good shape.
-                </p>
-              </div>
+            <div className="px-5 py-10 text-center text-sm text-zinc-400">
+              No orders yet.
             </div>
-            <div className="mt-4 grid gap-3">
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {/* Catalog health */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-indigo-50 p-2 rounded-lg">
+                <FolderKanban className="w-4 h-4 text-indigo-600" />
+              </div>
+              <h2 className="text-sm font-semibold text-zinc-900">Catalog</h2>
+            </div>
+            <div className="space-y-2">
               <Link
                 href="/admin/categories"
-                className="rounded-sm border border-border px-4 py-3 text-sm text-charcoal transition-colors hover:border-charcoal"
+                className="flex items-center justify-between p-3 rounded-md border border-zinc-100 hover:border-zinc-300 hover:bg-zinc-50 transition-all text-sm text-zinc-700"
               >
-                Manage categories and display order
+                <span>Manage categories</span>
+                <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
               </Link>
               <Link
                 href="/admin/products"
-                className="rounded-sm border border-border px-4 py-3 text-sm text-charcoal transition-colors hover:border-charcoal"
+                className="flex items-center justify-between p-3 rounded-md border border-zinc-100 hover:border-zinc-300 hover:bg-zinc-50 transition-all text-sm text-zinc-700"
               >
-                Review product details, stock, and variant pricing
+                <span>Review products & stock</span>
+                <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
               </Link>
             </div>
-          </section>
+          </div>
 
-          <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-charcoal">Low Stock Watch</h3>
-                <p className="text-sm text-muted">
-                  General products nearing sell-out.
-                </p>
+          {/* Low stock */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-50 p-2 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                </div>
+                <h2 className="text-sm font-semibold text-zinc-900">Low Stock</h2>
               </div>
               <Link
                 href="/admin/products"
-                className="text-xs font-medium uppercase tracking-[0.12em] text-charcoal hover:text-terracotta"
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
               >
                 Manage
               </Link>
             </div>
-            <div className="mt-4 space-y-3">
-              {lowStockProducts && lowStockProducts.length > 0 ? (
-                lowStockProducts.map((product) => (
+
+            {lowStockProducts && lowStockProducts.length > 0 ? (
+              <div className="space-y-2">
+                {lowStockProducts.map((p) => (
                   <div
-                    key={product.id}
-                    className="flex items-center justify-between rounded-sm border border-border px-4 py-3"
+                    key={p.id}
+                    className="flex items-center justify-between py-2 border-b border-zinc-50 last:border-0"
                   >
-                    <div>
-                      <p className="font-medium text-charcoal">
-                        {product.name}
-                      </p>
-                      <p className="text-xs text-muted">General product</p>
-                    </div>
-                    <span className="text-sm font-medium text-terracotta">
-                      {product.stock_quantity} left
+                    <p className="text-sm text-zinc-700 truncate">{p.name}</p>
+                    <span className={`text-xs font-semibold tabular-nums ml-4 flex-none ${p.stock_quantity === 0 ? "text-red-600" : "text-amber-600"}`}>
+                      {p.stock_quantity} left
                     </span>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted">
-                  No low-stock general products right now.
-                </p>
-              )}
-            </div>
-          </section>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-400">All products are well-stocked.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

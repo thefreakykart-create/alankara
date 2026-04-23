@@ -1,27 +1,39 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { updateOrderStatusAction } from "@/app/admin/actions";
 import { ORDER_STATUS_LABELS } from "@/lib/constants";
 import { requireAdmin } from "@/lib/admin";
 import { formatINR } from "@/lib/utils";
 
-interface AdminOrderDetailPageProps {
+interface Props {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: AdminOrderDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  return {
-    title: `Manage Order ${id} — Alankara Admin`,
-  };
+  return { title: `Order ${id} — Alankara Admin` };
 }
 
-export default async function AdminOrderDetailPage({
-  params,
-}: AdminOrderDetailPageProps) {
+function statusClass(status: string) {
+  const map: Record<string, string> = {
+    pending: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+    confirmed: "bg-blue-50 text-blue-700 border border-blue-200",
+    processing: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+    shipped: "bg-purple-50 text-purple-700 border border-purple-200",
+    delivered: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    cancelled: "bg-red-50 text-red-700 border border-red-200",
+    refunded: "bg-zinc-100 text-zinc-600 border border-zinc-200",
+  };
+  return map[status] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200";
+}
+
+const inputCls =
+  "w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+const labelCls = "block text-xs font-medium text-zinc-500 mb-1.5";
+
+export default async function AdminOrderDetailPage({ params }: Props) {
   const { id } = await params;
   const { supabase } = await requireAdmin();
 
@@ -35,15 +47,8 @@ export default async function AdminOrderDetailPage({
 
   const [{ data: items }, { data: payment }, { data: tracking }, { data: profile }] =
     await Promise.all([
-      supabase
-        .from("order_items")
-        .select("*")
-        .eq("order_id", id),
-      supabase
-        .from("payments")
-        .select("*")
-        .eq("order_id", id)
-        .maybeSingle(),
+      supabase.from("order_items").select("*").eq("order_id", id),
+      supabase.from("payments").select("*").eq("order_id", id).maybeSingle(),
       supabase
         .from("order_tracking")
         .select("*")
@@ -56,7 +61,7 @@ export default async function AdminOrderDetailPage({
         .maybeSingle(),
     ]);
 
-  const shippingAddress = order.shipping_address as {
+  const addr = order.shipping_address as {
     fullName?: string;
     phone?: string;
     addressLine1?: string;
@@ -69,16 +74,17 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-            Order Detail
-          </p>
-          <h2 className="mt-1 font-serif text-3xl text-charcoal">
-            {order.order_number}
-          </h2>
-          <p className="mt-2 text-sm text-muted">
-            Placed on{" "}
+          <Link
+            href="/admin/orders"
+            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mb-2"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Orders
+          </Link>
+          <h1 className="text-xl font-semibold text-zinc-900">{order.order_number}</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Placed{" "}
             {new Date(order.created_at).toLocaleDateString("en-IN", {
               day: "numeric",
               month: "long",
@@ -86,219 +92,189 @@ export default async function AdminOrderDetailPage({
             })}
           </p>
         </div>
-        <Link
-          href="/admin/orders"
-          className="inline-flex items-center gap-2 rounded-sm border border-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-charcoal transition-colors hover:bg-charcoal hover:text-warm-white"
-        >
-          Back to Orders
-        </Link>
+        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${statusClass(order.status)}`}>
+          {ORDER_STATUS_LABELS[order.status] ?? order.status}
+        </span>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-        <div className="space-y-6">
-          <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-charcoal">Items</h3>
-                <p className="text-sm text-muted">
-                  All products included in this order.
-                </p>
-              </div>
-              <span className="rounded-full bg-cream px-2.5 py-1 text-xs font-medium text-charcoal">
-                {ORDER_STATUS_LABELS[order.status] ?? order.status}
-              </span>
+      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+        <div className="space-y-5">
+          {/* Items */}
+          <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100">
+              <h2 className="text-sm font-semibold text-zinc-900">Order Items</h2>
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="divide-y divide-zinc-100">
               {items?.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded-sm border border-border px-4 py-3"
-                >
+                <div key={item.id} className="px-5 py-4 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-charcoal">{item.product_name}</p>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="font-medium text-zinc-900">{item.product_name}</p>
+                    <p className="mt-0.5 text-xs text-zinc-400">
                       Qty {item.quantity} · {formatINR(item.unit_price)} each
                     </p>
                   </div>
-                  <span className="font-medium text-charcoal">
+                  <span className="font-semibold text-zinc-900 tabular-nums">
                     {formatINR(item.total_price)}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="mt-5 border-t border-border pt-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">Subtotal</span>
-                <span className="text-charcoal">{formatINR(order.subtotal)}</span>
+            <div className="px-5 py-4 border-t border-zinc-100 space-y-2 text-sm">
+              <div className="flex justify-between text-zinc-500">
+                <span>Subtotal</span>
+                <span className="text-zinc-900 tabular-nums">{formatINR(order.subtotal)}</span>
               </div>
-              <div className="mt-2 flex justify-between">
-                <span className="text-muted">Shipping</span>
-                <span className="text-charcoal">
-                  {formatINR(order.shipping_cost)}
-                </span>
+              <div className="flex justify-between text-zinc-500">
+                <span>Shipping</span>
+                <span className="text-zinc-900 tabular-nums">{formatINR(order.shipping_cost)}</span>
               </div>
-              <div className="mt-3 flex justify-between border-t border-border pt-3 font-medium">
-                <span className="text-charcoal">Total</span>
-                <span className="text-charcoal">{formatINR(order.total)}</span>
+              <div className="flex justify-between font-semibold text-zinc-900 pt-2 border-t border-zinc-100">
+                <span>Total</span>
+                <span className="tabular-nums">{formatINR(order.total)}</span>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <h3 className="font-medium text-charcoal">Tracking Timeline</h3>
-            <div className="mt-4 space-y-4">
-              {tracking && tracking.length > 0 ? (
-                tracking.map((entry) => (
-                  <div key={entry.id} className="border-l border-border pl-4">
-                    <p className="text-sm font-medium text-charcoal">
-                      {ORDER_STATUS_LABELS[entry.status] ?? entry.status}
-                    </p>
-                    {entry.description && (
-                      <p className="mt-1 text-sm text-muted">
-                        {entry.description}
+          {/* Tracking timeline */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Tracking Timeline</h2>
+            {tracking && tracking.length > 0 ? (
+              <div className="space-y-4">
+                {tracking.map((entry, i) => (
+                  <div key={entry.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-none mt-1 ${i === 0 ? "bg-indigo-600" : "bg-zinc-300"}`} />
+                      {i < tracking.length - 1 && (
+                        <div className="w-px flex-1 bg-zinc-200 mt-1" />
+                      )}
+                    </div>
+                    <div className="pb-4">
+                      <p className="text-sm font-medium text-zinc-900">
+                        {ORDER_STATUS_LABELS[entry.status] ?? entry.status}
                       </p>
-                    )}
-                    <p className="mt-1 text-xs text-muted">
-                      {new Date(entry.created_at).toLocaleString("en-IN")}
-                    </p>
-                    {(entry.courier_name || entry.tracking_number) && (
-                      <p className="mt-1 text-xs text-muted">
-                        {[entry.courier_name, entry.tracking_number]
-                          .filter(Boolean)
-                          .join(" · ")}
+                      {entry.description && (
+                        <p className="mt-0.5 text-sm text-zinc-500">{entry.description}</p>
+                      )}
+                      <p className="mt-0.5 text-xs text-zinc-400">
+                        {new Date(entry.created_at).toLocaleString("en-IN")}
                       </p>
-                    )}
+                      {(entry.courier_name || entry.tracking_number) && (
+                        <p className="mt-0.5 text-xs text-zinc-400">
+                          {[entry.courier_name, entry.tracking_number].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted">No tracking events yet.</p>
-              )}
-            </div>
-          </section>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-400">No tracking events yet.</p>
+            )}
+          </div>
         </div>
 
-        <aside className="space-y-6">
-          <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <h3 className="font-medium text-charcoal">Update Fulfillment</h3>
-            <form action={updateOrderStatusAction} className="mt-4 space-y-4">
+        <aside className="space-y-5">
+          {/* Update fulfillment */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Update Fulfillment</h2>
+            <form action={updateOrderStatusAction} className="space-y-3">
               <input type="hidden" name="orderId" value={order.id} />
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Status
-                </span>
+              <div>
+                <label className={labelCls}>Status</label>
                 <select
                   name="status"
                   defaultValue={order.status}
-                  className="h-11 w-full rounded-sm border border-border bg-transparent px-3 text-sm focus:border-charcoal focus:outline-none"
+                  className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
+                  {Object.entries(ORDER_STATUS_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>
                       {label}
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Courier Name
-                </span>
-                <input
-                  name="courierName"
-                  className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Tracking Number
-                </span>
-                <input
-                  name="trackingNumber"
-                  className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Note
-                </span>
+              </div>
+              <div>
+                <label className={labelCls}>Courier Name</label>
+                <input name="courierName" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Tracking Number</label>
+                <input name="trackingNumber" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Note</label>
                 <textarea
                   name="description"
-                  rows={4}
+                  rows={3}
                   placeholder="What changed for this order?"
-                  className="w-full rounded-sm border border-border px-3 py-3 text-sm focus:border-charcoal focus:outline-none"
+                  className="w-full px-3 py-2.5 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
-              </label>
+              </div>
               <button
                 type="submit"
-                className="rounded-sm bg-charcoal px-5 py-2.5 text-xs font-medium uppercase tracking-[0.12em] text-warm-white transition-colors hover:bg-terracotta"
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors"
               >
                 Save Update
               </button>
             </form>
-          </section>
+          </div>
 
-          <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <h3 className="font-medium text-charcoal">Customer & Shipping</h3>
-            <div className="mt-4 space-y-3 text-sm">
+          {/* Customer & Shipping */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Customer & Shipping</h2>
+            <div className="space-y-4 text-sm">
               <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Customer
+                <p className="text-xs font-medium text-zinc-500 mb-1">Customer</p>
+                <p className="font-medium text-zinc-900">
+                  {addr?.fullName || profile?.full_name || "Customer"}
                 </p>
-                <p className="mt-1 font-medium text-charcoal">
-                  {shippingAddress?.fullName || profile?.full_name || "Customer"}
-                </p>
-                <p className="mt-1 text-muted">
-                  {shippingAddress?.phone || profile?.phone || "No phone"}
+                <p className="text-zinc-500">
+                  {addr?.phone || profile?.phone || "No phone"}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-muted">
-                  Address
-                </p>
-                <p className="mt-1 text-charcoal">
+                <p className="text-xs font-medium text-zinc-500 mb-1">Delivery Address</p>
+                <p className="text-zinc-700 leading-relaxed">
                   {[
-                    shippingAddress?.addressLine1,
-                    shippingAddress?.addressLine2,
-                    shippingAddress?.landmark,
-                    shippingAddress?.city,
-                    shippingAddress?.state,
-                    shippingAddress?.pincode,
+                    addr?.addressLine1,
+                    addr?.addressLine2,
+                    addr?.landmark,
+                    addr?.city,
+                    addr?.state,
+                    addr?.pincode,
                   ]
                     .filter(Boolean)
                     .join(", ") || "No address stored"}
                 </p>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <h3 className="font-medium text-charcoal">Payment</h3>
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-muted">Status</span>
-                <span className="font-medium text-charcoal">
-                  {payment?.status || "Pending"}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted">Method</span>
-                <span className="font-medium text-charcoal">
-                  {payment?.payment_method || "—"}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted">Amount</span>
-                <span className="font-medium text-charcoal">
-                  {payment ? formatINR(payment.amount) : formatINR(order.total)}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted">Merchant Txn</span>
-                <span className="max-w-[180px] text-right font-medium text-charcoal">
-                  {payment?.phonepe_merchant_transaction_id || "—"}
-                </span>
-              </div>
+          {/* Payment */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Payment</h2>
+            <div className="space-y-2.5 text-sm">
+              {[
+                { label: "Status", value: payment?.status || "Pending" },
+                { label: "Method", value: payment?.payment_method || "—" },
+                {
+                  label: "Amount",
+                  value: payment ? formatINR(payment.amount) : formatINR(order.total),
+                },
+                {
+                  label: "Txn ID",
+                  value: payment?.phonepe_merchant_transaction_id || "—",
+                },
+              ].map((row) => (
+                <div key={row.label} className="flex justify-between gap-3">
+                  <span className="text-zinc-500">{row.label}</span>
+                  <span className="font-medium text-zinc-900 text-right truncate max-w-[180px]">
+                    {row.value}
+                  </span>
+                </div>
+              ))}
             </div>
-          </section>
+          </div>
         </aside>
       </div>
     </div>

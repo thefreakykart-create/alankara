@@ -1,11 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import {
-  updateProductAction,
-  updateProductVariantAction,
-} from "@/app/admin/actions";
+import { updateProductAction, updateProductVariantAction } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
 import { formatINR } from "@/lib/utils";
 import {
@@ -15,22 +13,22 @@ import {
   type FrameType,
 } from "@/lib/types/product";
 
-interface AdminProductDetailPageProps {
+interface Props {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: AdminProductDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  return {
-    title: `Manage Product ${id} — Alankara Admin`,
-  };
+  return { title: `Edit Product — Alankara Admin` };
 }
 
-export default async function AdminProductDetailPage({
-  params,
-}: AdminProductDetailPageProps) {
+const inputCls =
+  "w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+const textareaCls =
+  "w-full px-3 py-2.5 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none";
+const labelCls = "block text-xs font-medium text-zinc-500 mb-1.5";
+
+export default async function AdminProductDetailPage({ params }: Props) {
   const { id } = await params;
   const { supabase } = await requireAdmin();
 
@@ -55,422 +53,340 @@ export default async function AdminProductDetailPage({
 
   if (!product) notFound();
 
-  const categoryRelation = product.category as
+  const catRel = product.category as
     | { name?: string }[]
     | { name?: string }
     | null
     | undefined;
-  const categoryName = Array.isArray(categoryRelation)
-    ? categoryRelation[0]?.name
-    : categoryRelation?.name;
+  const catName = Array.isArray(catRel) ? catRel[0]?.name : catRel?.name;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-            Product Detail
-          </p>
-          <h2 className="mt-1 font-serif text-3xl text-charcoal">
-            {product.name}
-          </h2>
-          <p className="mt-2 text-sm text-muted">
+          <Link
+            href="/admin/products"
+            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mb-2"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Products
+          </Link>
+          <h1 className="text-xl font-semibold text-zinc-900">{product.name}</h1>
+          <p className="mt-1 text-sm text-zinc-500">
             {product.product_type === "wall_art"
-              ? "Variant-managed wall art product"
+              ? "Variant-managed wall art"
               : "General catalog product"}
           </p>
         </div>
-        <Link
-          href="/admin/products"
-          className="inline-flex items-center gap-2 rounded-sm border border-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-charcoal transition-colors hover:bg-charcoal hover:text-warm-white"
+        <span
+          className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${
+            product.is_active
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              : "bg-red-50 text-red-600 border border-red-200"
+          }`}
         >
-          Back to Products
-        </Link>
+          {product.is_active ? "Active" : "Inactive"}
+        </span>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
+        {/* Edit form */}
         <form
           action={updateProductAction}
-          className="rounded-sm border border-border bg-warm-white p-5 shadow-sm"
+          className="bg-white border border-zinc-200 rounded-lg p-5 space-y-4"
         >
           <input type="hidden" name="productId" value={product.id} />
           <input type="hidden" name="productType" value={product.product_type} />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Name
-              </span>
-              <input
-                name="name"
-                defaultValue={product.name}
-                required
-                className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Slug
-              </span>
-              <input
-                name="slug"
-                defaultValue={product.slug}
-                className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-              />
-            </label>
-            <label className="space-y-1 md:col-span-2">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Description
-              </span>
+            <div>
+              <label className={labelCls}>Name *</label>
+              <input name="name" defaultValue={product.name} required className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Slug</label>
+              <input name="slug" defaultValue={product.slug} className={inputCls} />
+            </div>
+            <div className="md:col-span-2">
+              <label className={labelCls}>Description</label>
               <textarea
                 name="description"
-                rows={5}
+                rows={4}
                 defaultValue={product.description ?? ""}
-                className="w-full rounded-sm border border-border px-3 py-3 text-sm focus:border-charcoal focus:outline-none"
+                className={textareaCls}
               />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Category
-              </span>
+            </div>
+            <div>
+              <label className={labelCls}>Category</label>
               <select
                 name="categoryId"
                 defaultValue={product.category_id ?? ""}
-                className="h-11 w-full rounded-sm border border-border bg-transparent px-3 text-sm focus:border-charcoal focus:outline-none"
+                className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">None</option>
-                {categories?.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
+                {categories?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                SKU
-              </span>
-              <input
-                name="sku"
-                defaultValue={product.sku ?? ""}
-                className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-              />
-            </label>
+            </div>
+            <div>
+              <label className={labelCls}>SKU</label>
+              <input name="sku" defaultValue={product.sku ?? ""} className={inputCls} />
+            </div>
 
             {product.product_type === "general" && (
               <>
-                <label className="space-y-1">
-                  <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                    Price (INR)
-                  </span>
+                <div>
+                  <label className={labelCls}>Price (INR)</label>
                   <input
                     name="price"
                     type="number"
                     step="0.01"
                     defaultValue={product.price / 100}
-                    className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                    className={inputCls}
                   />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                    Compare At Price
-                  </span>
+                </div>
+                <div>
+                  <label className={labelCls}>Compare At Price</label>
                   <input
                     name="compareAtPrice"
                     type="number"
                     step="0.01"
-                    defaultValue={
-                      product.compare_at_price
-                        ? product.compare_at_price / 100
-                        : ""
-                    }
-                    className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                    defaultValue={product.compare_at_price ? product.compare_at_price / 100 : ""}
+                    className={inputCls}
                   />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                    Stock Quantity
-                  </span>
+                </div>
+                <div>
+                  <label className={labelCls}>Stock Quantity</label>
                   <input
                     name="stockQuantity"
                     type="number"
                     defaultValue={product.stock_quantity}
-                    className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                    className={inputCls}
                   />
-                </label>
+                </div>
               </>
             )}
 
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Weight (grams)
-              </span>
+            <div>
+              <label className={labelCls}>Weight (grams)</label>
               <input
                 name="weightGrams"
                 type="number"
                 defaultValue={product.weight_grams ?? ""}
-                className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                className={inputCls}
               />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Material
-              </span>
+            </div>
+            <div>
+              <label className={labelCls}>Material</label>
               <input
                 name="material"
                 defaultValue={product.metadata?.material ?? ""}
-                className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                className={inputCls}
               />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Care Instructions
-              </span>
+            </div>
+            <div>
+              <label className={labelCls}>Care Instructions</label>
               <input
                 name="care"
                 defaultValue={product.metadata?.care ?? ""}
-                className="h-11 w-full rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
+                className={inputCls}
               />
-            </label>
-            <label className="space-y-1 md:col-span-2">
-              <span className="text-xs uppercase tracking-[0.16em] text-muted">
-                Image URLs
-              </span>
+            </div>
+            <div className="md:col-span-2">
+              <label className={labelCls}>Image URLs (one per line)</label>
               <textarea
                 name="imageUrls"
                 rows={4}
                 defaultValue={(product.images ?? []).join("\n")}
-                className="w-full rounded-sm border border-border px-3 py-3 text-sm focus:border-charcoal focus:outline-none"
+                className={textareaCls}
               />
-            </label>
+            </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-5">
-            <label className="inline-flex items-center gap-2 text-sm text-charcoal">
+          <div className="flex flex-wrap gap-5">
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
               <input
                 name="isActive"
                 type="checkbox"
                 defaultChecked={product.is_active}
-                className="h-4 w-4 accent-charcoal"
+                className="h-4 w-4 rounded accent-indigo-600"
               />
               Active
             </label>
-            <label className="inline-flex items-center gap-2 text-sm text-charcoal">
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
               <input
                 name="isFeatured"
                 type="checkbox"
                 defaultChecked={product.is_featured}
-                className="h-4 w-4 accent-charcoal"
+                className="h-4 w-4 rounded accent-indigo-600"
               />
               Featured
             </label>
           </div>
 
-          <div className="mt-5">
-            <button
-              type="submit"
-              className="rounded-sm bg-charcoal px-5 py-2.5 text-xs font-medium uppercase tracking-[0.12em] text-warm-white transition-colors hover:bg-terracotta"
-            >
-              Save Product
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            Save Product
+          </button>
         </form>
 
-        <aside className="space-y-6">
-          <div className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <h3 className="font-medium text-charcoal">Quick Summary</h3>
-            <div className="mt-4 space-y-3 text-sm text-muted">
-              <div className="flex justify-between gap-4">
-                <span>Type</span>
-                <span className="font-medium text-charcoal">
-                  {product.product_type === "wall_art" ? "Wall Art" : "General"}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span>Category</span>
-                <span className="font-medium text-charcoal">
-                  {categoryName || "—"}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span>Status</span>
-                <span className="font-medium text-charcoal">
-                  {product.is_active ? "Active" : "Inactive"}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span>Created</span>
-                <span className="font-medium text-charcoal">
-                  {new Date(product.created_at).toLocaleDateString("en-IN")}
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span>Updated</span>
-                <span className="font-medium text-charcoal">
-                  {new Date(product.updated_at).toLocaleDateString("en-IN")}
-                </span>
-              </div>
+        {/* Sidebar info */}
+        <aside className="space-y-5">
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Summary</h2>
+            <div className="space-y-2.5 text-sm">
+              {[
+                { label: "Type", value: product.product_type === "wall_art" ? "Wall Art" : "General" },
+                { label: "Category", value: catName || "—" },
+                { label: "Status", value: product.is_active ? "Active" : "Inactive" },
+                { label: "Created", value: new Date(product.created_at).toLocaleDateString("en-IN") },
+                { label: "Updated", value: new Date(product.updated_at).toLocaleDateString("en-IN") },
+              ].map((row) => (
+                <div key={row.label} className="flex justify-between gap-3">
+                  <span className="text-zinc-500">{row.label}</span>
+                  <span className="font-medium text-zinc-900 text-right">{row.value}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-            <h3 className="font-medium text-charcoal">Gallery Preview</h3>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {(product.images ?? []).length > 0 ? (
-                product.images.map((image: string, index: number) => (
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Gallery</h2>
+            {(product.images ?? []).length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {product.images.map((img: string, i: number) => (
                   <div
-                    key={`${image}-${index}`}
-                    className="relative aspect-[3/4] overflow-hidden rounded-sm bg-cream"
+                    key={`${img}-${i}`}
+                    className="relative aspect-[3/4] overflow-hidden rounded-md bg-zinc-100"
                   >
                     <Image
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
+                      src={img}
+                      alt={`${product.name} ${i + 1}`}
                       fill
-                      sizes="180px"
+                      sizes="140px"
                       className="object-cover"
                     />
                   </div>
-                ))
-              ) : (
-                <p className="col-span-2 text-sm text-muted">
-                  No base images set on this product.
-                </p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-400">No images set.</p>
+            )}
           </div>
         </aside>
       </div>
 
+      {/* Variants table (wall art only) */}
       {product.product_type === "wall_art" && (
-        <section className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-charcoal">Variants</h3>
-              <p className="text-sm text-muted">
-                Update pricing, SKU, stock, and active state per frame option.
-              </p>
-            </div>
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-zinc-100">
+            <h2 className="text-sm font-semibold text-zinc-900">Variants</h2>
+            <p className="mt-0.5 text-sm text-zinc-500">
+              Update pricing, SKU, stock, and active state per frame option.
+            </p>
           </div>
-
-          <div className="mt-5 overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-cream/40">
-                  <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.16em] text-muted">
-                    Variant
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.16em] text-muted">
-                    SKU
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs uppercase tracking-[0.16em] text-muted">
-                    Price
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs uppercase tracking-[0.16em] text-muted">
-                    Stock
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs uppercase tracking-[0.16em] text-muted">
-                    Save
-                  </th>
+                <tr className="bg-zinc-50 border-b border-zinc-200">
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500">Variant</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500 min-w-[500px]">Edit</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500">Current Price</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500">Stock</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-zinc-100">
                 {variants?.map(
-                  (
-                    variant: {
-                      id: string;
-                      frame_type: FrameType;
-                      size: FrameSize;
-                      images: string[];
-                      sku: string | null;
-                      price: number;
-                      compare_at_price: number | null;
-                      stock_quantity: number;
-                      is_active: boolean;
-                    }
-                  ) => (
-                  <tr key={variant.id} className="border-b border-border/70">
-                    <td className="px-4 py-4">
-                      <p className="font-medium text-charcoal">
-                        {FRAME_TYPE_LABELS[variant.frame_type]} ·{" "}
-                        {FRAME_SIZE_LABELS[variant.size]}
-                      </p>
-                      <p className="mt-1 text-xs text-muted">
-                        {variant.images?.length ?? 0} gallery image
-                        {(variant.images?.length ?? 0) === 1 ? "" : "s"}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <form
-                        action={updateProductVariantAction}
-                        className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_120px_120px_110px_auto]"
-                      >
-                        <input type="hidden" name="variantId" value={variant.id} />
-                        <input type="hidden" name="productId" value={product.id} />
-                        <input
-                          name="sku"
-                          defaultValue={variant.sku ?? ""}
-                          className="h-10 min-w-[160px] rounded-sm border border-border px-3 text-sm focus:border-charcoal focus:outline-none"
-                        />
-                        <input
-                          name="price"
-                          type="number"
-                          step="0.01"
-                          defaultValue={variant.price / 100}
-                          className="h-10 rounded-sm border border-border px-3 text-right text-sm focus:border-charcoal focus:outline-none"
-                        />
-                        <input
-                          name="compareAtPrice"
-                          type="number"
-                          step="0.01"
-                          defaultValue={
-                            variant.compare_at_price
-                              ? variant.compare_at_price / 100
-                              : ""
-                          }
-                          placeholder="Compare"
-                          className="h-10 rounded-sm border border-border px-3 text-right text-sm focus:border-charcoal focus:outline-none"
-                        />
-                        <input
-                          name="stockQuantity"
-                          type="number"
-                          defaultValue={variant.stock_quantity}
-                          className="h-10 rounded-sm border border-border px-3 text-right text-sm focus:border-charcoal focus:outline-none"
-                        />
-                        <div className="flex items-center gap-3">
-                          <label className="inline-flex items-center gap-2 text-xs text-muted">
+                  (v: {
+                    id: string;
+                    frame_type: FrameType;
+                    size: FrameSize;
+                    images: string[];
+                    sku: string | null;
+                    price: number;
+                    compare_at_price: number | null;
+                    stock_quantity: number;
+                    is_active: boolean;
+                  }) => (
+                    <tr key={v.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-5 py-4 align-top">
+                        <p className="font-medium text-zinc-900">
+                          {FRAME_TYPE_LABELS[v.frame_type]} · {FRAME_SIZE_LABELS[v.size]}
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-400">
+                          {v.images?.length ?? 0} image{(v.images?.length ?? 0) === 1 ? "" : "s"}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <form
+                          action={updateProductVariantAction}
+                          className="flex flex-wrap items-center gap-2"
+                        >
+                          <input type="hidden" name="variantId" value={v.id} />
+                          <input type="hidden" name="productId" value={product.id} />
+                          <input
+                            name="sku"
+                            defaultValue={v.sku ?? ""}
+                            placeholder="SKU"
+                            className="h-9 w-40 px-3 rounded-md border border-zinc-200 bg-white text-xs font-mono text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                          <input
+                            name="price"
+                            type="number"
+                            step="0.01"
+                            defaultValue={v.price / 100}
+                            placeholder="Price"
+                            className="h-9 w-28 px-3 rounded-md border border-zinc-200 bg-white text-xs text-right text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                          <input
+                            name="compareAtPrice"
+                            type="number"
+                            step="0.01"
+                            defaultValue={v.compare_at_price ? v.compare_at_price / 100 : ""}
+                            placeholder="Compare"
+                            className="h-9 w-28 px-3 rounded-md border border-zinc-200 bg-white text-xs text-right text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                          <input
+                            name="stockQuantity"
+                            type="number"
+                            defaultValue={v.stock_quantity}
+                            placeholder="Stock"
+                            className="h-9 w-20 px-3 rounded-md border border-zinc-200 bg-white text-xs text-right text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                          <label className="inline-flex items-center gap-1.5 text-xs text-zinc-600 cursor-pointer">
                             <input
                               name="isActive"
                               type="checkbox"
-                              defaultChecked={variant.is_active}
-                              className="h-4 w-4 accent-charcoal"
+                              defaultChecked={v.is_active}
+                              className="h-3.5 w-3.5 rounded accent-indigo-600"
                             />
                             Active
                           </label>
                           <button
                             type="submit"
-                            className="rounded-sm border border-charcoal px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-charcoal transition-colors hover:bg-charcoal hover:text-warm-white"
+                            className="h-9 px-3 border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-medium rounded-md transition-colors"
                           >
                             Save
                           </button>
-                        </div>
-                      </form>
-                    </td>
-                    <td className="px-4 py-4 text-right font-medium text-charcoal">
-                      {formatINR(variant.price)}
-                    </td>
-                    <td className="px-4 py-4 text-right font-medium text-charcoal">
-                      {variant.stock_quantity}
-                    </td>
-                    <td className="px-4 py-4 text-center text-xs text-muted">
-                      {variant.is_active ? "Active" : "Inactive"}
-                    </td>
-                  </tr>
-                )
+                        </form>
+                      </td>
+                      <td className="px-5 py-4 text-right font-medium text-zinc-900 tabular-nums align-top">
+                        {formatINR(v.price)}
+                      </td>
+                      <td className="px-5 py-4 text-right font-medium text-zinc-900 tabular-nums align-top">
+                        {v.stock_quantity}
+                      </td>
+                    </tr>
+                  )
                 )}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
       )}
     </div>
   );

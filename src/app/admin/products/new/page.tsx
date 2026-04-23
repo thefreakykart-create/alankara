@@ -7,6 +7,10 @@ import { generateSlug } from "@/lib/utils";
 import { Loader2, Upload } from "lucide-react";
 import type { Category } from "@/lib/types/product";
 
+const inputCls =
+  "w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+const labelCls = "block text-xs font-medium text-zinc-500 mb-1.5";
+
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -28,8 +32,7 @@ export default function NewProductPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase
+    createClient()
       .from("categories")
       .select("*")
       .order("display_order")
@@ -38,15 +41,8 @@ export default function NewProductPage() {
       });
   }, []);
 
-  const updateField = (field: string, value: string | boolean) => {
+  const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(Array.from(e.target.files));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +57,6 @@ export default function NewProductPage() {
         ? Math.round(parseFloat(form.compareAtPrice) * 100)
         : null;
 
-      // Upload images
       const imageUrls: string[] = [];
       for (const file of images) {
         const ext = file.name.split(".").pop();
@@ -69,12 +64,10 @@ export default function NewProductPage() {
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(path, file);
-
         if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("product-images").getPublicUrl(path);
+        const { data: { publicUrl } } = supabase.storage
+          .from("product-images")
+          .getPublicUrl(path);
         imageUrls.push(publicUrl);
       }
 
@@ -98,7 +91,6 @@ export default function NewProductPage() {
       });
 
       if (insertError) throw insertError;
-
       router.push("/admin/products");
       router.refresh();
     } catch (err: unknown) {
@@ -111,205 +103,158 @@ export default function NewProductPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-          Catalog
-        </p>
-        <h2 className="mt-1 font-serif text-3xl text-charcoal tracking-wide">
-          Add New Product
-        </h2>
-        <p className="mt-2 text-sm text-muted">
-          Create a standard catalog product with direct pricing and stock.
+        <h1 className="text-xl font-semibold text-zinc-900">New Product</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Add a general catalog product with direct pricing and stock.
         </p>
       </div>
 
-      <div className="max-w-3xl rounded-sm border border-border bg-warm-white p-6 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name */}
-          <div>
-            <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-              Product Name *
-            </label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => updateField("name", e.target.value)}
-              required
-              className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-              Description
-            </label>
-            <textarea
-              value={form.description}
-              onChange={(e) => updateField("description", e.target.value)}
-              rows={4}
-              className="w-full px-4 py-3 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent resize-none"
-            />
-          </div>
-
-          {/* Price row */}
+      <div className="max-w-3xl bg-white border border-zinc-200 rounded-lg p-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className={labelCls}>Product Name *</label>
+              <input
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                required
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-2">
+              <label className={labelCls}>Description</label>
+              <textarea
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2.5 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              />
+            </div>
+
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                Price (INR) *
-              </label>
+              <label className={labelCls}>Price (INR) *</label>
               <input
                 type="number"
                 step="0.01"
                 value={form.price}
-                onChange={(e) => updateField("price", e.target.value)}
+                onChange={(e) => set("price", e.target.value)}
                 required
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                Compare At Price
-              </label>
+              <label className={labelCls}>Compare At Price</label>
               <input
                 type="number"
                 step="0.01"
                 value={form.compareAtPrice}
-                onChange={(e) => updateField("compareAtPrice", e.target.value)}
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                onChange={(e) => set("compareAtPrice", e.target.value)}
+                className={inputCls}
               />
             </div>
-          </div>
 
-          {/* Category + SKU */}
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                Category
-              </label>
+              <label className={labelCls}>Category</label>
               <select
                 value={form.categoryId}
-                onChange={(e) => updateField("categoryId", e.target.value)}
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                onChange={(e) => set("categoryId", e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">None</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                SKU
-              </label>
+              <label className={labelCls}>SKU</label>
               <input
-                type="text"
                 value={form.sku}
-                onChange={(e) => updateField("sku", e.target.value)}
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                onChange={(e) => set("sku", e.target.value)}
+                className={inputCls}
               />
             </div>
-          </div>
 
-          {/* Stock + Weight */}
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                Stock Quantity *
-              </label>
+              <label className={labelCls}>Stock Quantity *</label>
               <input
                 type="number"
                 value={form.stockQuantity}
-                onChange={(e) => updateField("stockQuantity", e.target.value)}
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                onChange={(e) => set("stockQuantity", e.target.value)}
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                Weight (grams)
-              </label>
+              <label className={labelCls}>Weight (grams)</label>
               <input
                 type="number"
                 value={form.weightGrams}
-                onChange={(e) => updateField("weightGrams", e.target.value)}
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                onChange={(e) => set("weightGrams", e.target.value)}
+                className={inputCls}
               />
             </div>
-          </div>
 
-          {/* Material + Care */}
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                Material
-              </label>
+              <label className={labelCls}>Material</label>
               <input
-                type="text"
                 value={form.material}
-                onChange={(e) => updateField("material", e.target.value)}
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                onChange={(e) => set("material", e.target.value)}
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-                Care Instructions
-              </label>
+              <label className={labelCls}>Care Instructions</label>
               <input
-                type="text"
                 value={form.care}
-                onChange={(e) => updateField("care", e.target.value)}
-                className="w-full h-11 px-4 border border-border rounded-sm text-sm focus:outline-none focus:border-charcoal bg-transparent"
+                onChange={(e) => set("care", e.target.value)}
+                className={inputCls}
               />
             </div>
           </div>
 
-          {/* Featured toggle */}
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-center gap-2.5 cursor-pointer w-fit">
             <input
               type="checkbox"
               checked={form.isFeatured}
-              onChange={(e) => updateField("isFeatured", e.target.checked)}
-              className="w-4 h-4 accent-terracotta"
+              onChange={(e) => set("isFeatured", e.target.checked)}
+              className="w-4 h-4 rounded accent-indigo-600"
             />
-            <span className="text-sm text-charcoal">Featured Product</span>
+            <span className="text-sm text-zinc-700">Featured on homepage</span>
           </label>
 
-          {/* Images */}
           <div>
-            <label className="block text-xs text-muted mb-1.5 tracking-wider uppercase">
-              Product Images
-            </label>
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-sm cursor-pointer hover:border-charcoal transition-colors">
-              <Upload className="w-6 h-6 text-muted mb-2" />
-              <span className="text-xs text-muted">
+            <label className={labelCls}>Product Images</label>
+            <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-zinc-200 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors">
+              <Upload className="w-5 h-5 text-zinc-400 mb-1.5" />
+              <span className="text-sm text-zinc-500">
                 {images.length > 0
-                  ? `${images.length} file(s) selected`
+                  ? `${images.length} file${images.length > 1 ? "s" : ""} selected`
                   : "Click to upload images"}
               </span>
               <input
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={handleImageChange}
+                onChange={(e) => e.target.files && setImages(Array.from(e.target.files))}
                 className="hidden"
               />
             </label>
           </div>
 
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-sm">
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2.5 rounded-md">
               {error}
-            </p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading || !form.name || !form.price}
-            className="w-full h-11 bg-charcoal text-warm-white text-sm font-medium tracking-[0.1em] uppercase rounded-sm hover:bg-terracotta transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? "Creating..." : "Create Product"}
+            {loading ? "Creating…" : "Create Product"}
           </button>
         </form>
       </div>

@@ -4,9 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/utils";
-import { Loader2, Upload, Plus, Trash2, CheckCircle } from "lucide-react";
+import { Loader2, Upload, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import type { Category, FrameType, FrameSize } from "@/lib/types/product";
-import { FRAME_TYPE_LABELS, FRAME_SIZE_LABELS, FRAME_TYPE_DESCRIPTIONS } from "@/lib/types/product";
+import {
+  FRAME_TYPE_LABELS,
+  FRAME_SIZE_LABELS,
+  FRAME_TYPE_DESCRIPTIONS,
+} from "@/lib/types/product";
 import { cn } from "@/lib/utils";
 
 const ALL_FRAME_TYPES: FrameType[] = ["canvas", "acrylic", "wooden"];
@@ -37,7 +41,7 @@ function defaultVariants(): Record<FrameSize, VariantRow> {
       compareAtPrice: "",
       sku: "",
       stock: "10",
-      enabled: i < 2, // default first 2 sizes enabled
+      enabled: i < 2,
     };
   });
   return rows as Record<FrameSize, VariantRow>;
@@ -45,7 +49,7 @@ function defaultVariants(): Record<FrameSize, VariantRow> {
 
 function generateDescription(name: string, category: string, frameType: FrameType): string {
   const categoryMap: Record<string, string> = {
-    "devotional": `Bring divine blessings into your space with this ${name} art print.`,
+    devotional: `Bring divine blessings into your space with this ${name} art print.`,
     "motivational-quotes": `Let this powerful quote inspire you every day — ${name}.`,
     "nature-landscapes": `Bring the serenity of nature indoors with this ${name} print.`,
     "abstract-art": `A bold statement piece — ${name} in striking abstract form.`,
@@ -57,9 +61,11 @@ function generateDescription(name: string, category: string, frameType: FrameTyp
     "combo-sets": `A curated set — ${name}, designed to complement each other perfectly.`,
   };
   const intro = categoryMap[category] || `${name} — a beautiful addition to any home.`;
-  const frameDesc = FRAME_TYPE_DESCRIPTIONS[frameType];
-  return `${intro}\n\n${frameDesc}\n\nPrinted with fade-resistant inks for lasting vibrancy. Perfect for living rooms, bedrooms, and gifting.`;
+  return `${intro}\n\n${FRAME_TYPE_DESCRIPTIONS[frameType]}\n\nPrinted with fade-resistant inks for lasting vibrancy. Perfect for living rooms, bedrooms, and gifting.`;
 }
+
+const inputCls =
+  "w-full h-9 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
 
 export default function PublishWallArtPage() {
   const router = useRouter();
@@ -86,8 +92,7 @@ export default function PublishWallArtPage() {
   });
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase
+    createClient()
       .from("categories")
       .select("*")
       .order("display_order")
@@ -96,12 +101,11 @@ export default function PublishWallArtPage() {
       });
   }, []);
 
-  const toggleFrame = (ft: FrameType) => {
+  const toggleFrame = (ft: FrameType) =>
     setFrames((prev) => ({
       ...prev,
       [ft]: { ...prev[ft], enabled: !prev[ft].enabled },
     }));
-  };
 
   const handleImageUpload = (ft: FrameType, files: FileList | null) => {
     if (!files) return;
@@ -118,14 +122,22 @@ export default function PublishWallArtPage() {
   };
 
   const removeImage = (ft: FrameType, index: number) => {
-    setFrames((prev) => {
-      const images = prev[ft].images.filter((_, i) => i !== index);
-      const imagePreviews = prev[ft].imagePreviews.filter((_, i) => i !== index);
-      return { ...prev, [ft]: { ...prev[ft], images, imagePreviews } };
-    });
+    setFrames((prev) => ({
+      ...prev,
+      [ft]: {
+        ...prev[ft],
+        images: prev[ft].images.filter((_, i) => i !== index),
+        imagePreviews: prev[ft].imagePreviews.filter((_, i) => i !== index),
+      },
+    }));
   };
 
-  const updateVariant = (ft: FrameType, size: FrameSize, field: keyof VariantRow, value: string | boolean) => {
+  const updateVariant = (
+    ft: FrameType,
+    size: FrameSize,
+    field: keyof VariantRow,
+    value: string | boolean
+  ) =>
     setFrames((prev) => ({
       ...prev,
       [ft]: {
@@ -136,26 +148,22 @@ export default function PublishWallArtPage() {
         },
       },
     }));
-  };
 
-  // Auto-fill SKUs when name changes
   const autoFillSkus = () => {
     if (!designName) return;
     const code = designName.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
-    const frameAbbrMap: Record<FrameType, string> = { canvas: "CV", acrylic: "AC", wooden: "WD" };
+    const abbr: Record<FrameType, string> = { canvas: "CV", acrylic: "AC", wooden: "WD" };
     setFrames((prev) => {
       const updated = { ...prev };
       ALL_FRAME_TYPES.forEach((ft) => {
-        const abbr = frameAbbrMap[ft];
         ALL_SIZES.forEach((size) => {
-          const sizeCode = size.replace("x", "");
           updated[ft] = {
             ...updated[ft],
             variants: {
               ...updated[ft].variants,
               [size]: {
                 ...updated[ft].variants[size],
-                sku: `ALK-${code}-${abbr}-${sizeCode}`,
+                sku: `ALK-${code}-${abbr[ft]}-${size.replace("x", "")}`,
               },
             },
           };
@@ -178,15 +186,18 @@ export default function PublishWallArtPage() {
       const slug = generateSlug(designName);
       const selectedCategory = categories.find((c) => c.id === categoryId);
 
-      // Create the product
       const { data: product, error: productError } = await supabase
         .from("products")
         .insert({
           name: designName,
           slug,
-          description: generateDescription(designName, selectedCategory?.slug ?? "", enabledFrames[0]),
+          description: generateDescription(
+            designName,
+            selectedCategory?.slug ?? "",
+            enabledFrames[0]
+          ),
           product_type: "wall_art",
-          price: 0, // wall_art uses variants for pricing
+          price: 0,
           category_id: categoryId,
           images: [],
           stock_quantity: 0,
@@ -198,15 +209,15 @@ export default function PublishWallArtPage() {
 
       if (productError) throw productError;
 
-      // Upload images + create variants for each enabled frame type
       for (const ft of enabledFrames) {
         const frameConfig = frames[ft];
         const uploadedUrls: string[] = [];
 
-        // Upload images to Supabase Storage
         for (const file of frameConfig.images) {
           const ext = file.name.split(".").pop();
-          const path = `products/${product.id}/${ft}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const path = `products/${product.id}/${ft}/${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2)}.${ext}`;
           const { error: uploadError } = await supabase.storage
             .from("product-images")
             .upload(path, file, { cacheControl: "31536000" });
@@ -218,19 +229,17 @@ export default function PublishWallArtPage() {
           }
         }
 
-        // Create variants for each enabled size
         const enabledSizes = ALL_SIZES.filter((s) => frameConfig.variants[s].enabled);
         for (const size of enabledSizes) {
           const v = frameConfig.variants[size];
-          const priceNum = Math.round(parseFloat(v.price) * 100);
-          const comparePriceNum = v.compareAtPrice ? Math.round(parseFloat(v.compareAtPrice) * 100) : null;
-
           await supabase.from("product_variants").insert({
             product_id: product.id,
             frame_type: ft,
             size,
-            price: priceNum,
-            compare_at_price: comparePriceNum,
+            price: Math.round(parseFloat(v.price) * 100),
+            compare_at_price: v.compareAtPrice
+              ? Math.round(parseFloat(v.compareAtPrice) * 100)
+              : null,
             sku: v.sku || null,
             stock_quantity: parseInt(v.stock) || 0,
             images: uploadedUrls,
@@ -250,55 +259,54 @@ export default function PublishWallArtPage() {
 
   if (published) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 rounded-sm border border-border bg-warm-white p-8 shadow-sm">
-        <CheckCircle className="w-14 h-14 text-emerald" />
-        <h2 className="font-serif text-2xl text-charcoal">Published!</h2>
-        <p className="text-muted text-sm">Redirecting to product page…</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center">
+          <CheckCircle2 className="w-9 h-9 text-emerald-600" />
+        </div>
+        <h2 className="text-xl font-semibold text-zinc-900">Published!</h2>
+        <p className="text-sm text-zinc-500">Redirecting to product page…</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl space-y-8">
+    <div className="max-w-4xl space-y-6">
       <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-          Wall Art
-        </p>
-        <h2 className="mt-1 font-serif text-3xl text-charcoal">Publish Wall Art</h2>
-        <p className="mt-2 text-sm text-muted">
-          Upload a design once and configure every frame and size combination
-          from a single screen.
+        <h1 className="text-xl font-semibold text-zinc-900">Publish Wall Art</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Upload a design once and configure every frame and size combination from one screen.
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">
           {error}
         </div>
       )}
 
-      {/* Step 1: Design Info */}
-      <section className="space-y-4 rounded-sm border border-border bg-warm-white p-6 shadow-sm">
-        <h2 className="text-xs tracking-[0.2em] uppercase text-muted border-b border-border pb-2">
-          1 — Design Info
+      {/* Design info */}
+      <div className="bg-white border border-zinc-200 rounded-lg p-5">
+        <h2 className="text-sm font-semibold text-zinc-900 mb-4">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-xs mr-2">1</span>
+          Design Info
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-muted tracking-wide block mb-1.5">Design Name *</label>
+            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Design Name *</label>
             <input
               value={designName}
               onChange={(e) => setDesignName(e.target.value)}
               onBlur={autoFillSkus}
               placeholder="e.g. Lord Ganesh"
-              className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-charcoal focus:outline-none focus:border-charcoal"
+              className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
-            <label className="text-xs text-muted tracking-wide block mb-1.5">Category *</label>
+            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Category *</label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-charcoal focus:outline-none focus:border-charcoal bg-white"
+              className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Select category…</option>
               {categories.map((c) => (
@@ -307,58 +315,58 @@ export default function PublishWallArtPage() {
             </select>
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm text-charcoal cursor-pointer w-fit">
+        <label className="flex items-center gap-2.5 mt-3 cursor-pointer w-fit">
           <input
             type="checkbox"
             checked={isFeatured}
             onChange={(e) => setIsFeatured(e.target.checked)}
-            className="accent-terracotta w-4 h-4"
+            className="w-4 h-4 rounded accent-indigo-600"
           />
-          Feature on home page
+          <span className="text-sm text-zinc-700">Feature on homepage</span>
         </label>
-      </section>
+      </div>
 
-      {/* Step 2: Frame Types */}
-      <section className="space-y-6 rounded-sm border border-border bg-warm-white p-6 shadow-sm">
-        <h2 className="text-xs tracking-[0.2em] uppercase text-muted border-b border-border pb-2">
-          2 — Frame Types & Variants
+      {/* Frame types */}
+      <div className="bg-white border border-zinc-200 rounded-lg p-5 space-y-4">
+        <h2 className="text-sm font-semibold text-zinc-900 mb-1">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-xs mr-2">2</span>
+          Frame Types & Variants
         </h2>
 
         {ALL_FRAME_TYPES.map((ft) => (
           <div
             key={ft}
             className={cn(
-              "border rounded-sm transition-all",
-              frames[ft].enabled ? "border-charcoal" : "border-border opacity-60"
+              "border rounded-lg transition-all",
+              frames[ft].enabled
+                ? "border-indigo-300 bg-indigo-50/30"
+                : "border-zinc-200 opacity-60"
             )}
           >
             {/* Frame header */}
-            <div className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={frames[ft].enabled}
-                  onChange={() => toggleFrame(ft)}
-                  className="accent-charcoal w-4 h-4"
-                />
-                <div>
-                  <p className="text-sm font-medium text-charcoal">{FRAME_TYPE_LABELS[ft]}</p>
-                  <p className="text-xs text-muted">{FRAME_TYPE_DESCRIPTIONS[ft]}</p>
-                </div>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <input
+                type="checkbox"
+                checked={frames[ft].enabled}
+                onChange={() => toggleFrame(ft)}
+                className="w-4 h-4 rounded accent-indigo-600"
+              />
+              <div>
+                <p className="text-sm font-medium text-zinc-900">{FRAME_TYPE_LABELS[ft]}</p>
+                <p className="text-xs text-zinc-500">{FRAME_TYPE_DESCRIPTIONS[ft]}</p>
               </div>
             </div>
 
             {frames[ft].enabled && (
-              <div className="px-5 pb-5 space-y-5 border-t border-border">
-
-                {/* Image upload */}
-                <div className="pt-4">
-                  <p className="text-xs text-muted tracking-wide mb-3">Gallery Images</p>
-                  <div className="flex flex-wrap gap-3">
+              <div className="px-4 pb-4 space-y-4 border-t border-zinc-200">
+                {/* Images */}
+                <div className="pt-3">
+                  <p className="text-xs font-medium text-zinc-500 mb-2">Gallery Images</p>
+                  <div className="flex flex-wrap gap-2">
                     {frames[ft].imagePreviews.map((src, i) => (
-                      <div key={i} className="relative group w-20 h-24">
+                      <div key={i} className="relative group w-16 h-20">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={src} alt="" className="w-full h-full object-cover rounded-sm" />
+                        <img src={src} alt="" className="w-full h-full object-cover rounded-md" />
                         <button
                           onClick={() => removeImage(ft, i)}
                           className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -367,9 +375,9 @@ export default function PublishWallArtPage() {
                         </button>
                       </div>
                     ))}
-                    <label className="w-20 h-24 border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center cursor-pointer hover:border-charcoal transition-colors gap-1">
-                      <Plus className="w-4 h-4 text-muted" />
-                      <span className="text-[10px] text-muted">Add</span>
+                    <label className="w-16 h-20 border-2 border-dashed border-zinc-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors gap-1">
+                      <Plus className="w-4 h-4 text-zinc-400" />
+                      <span className="text-[10px] text-zinc-400">Add</span>
                       <input
                         type="file"
                         multiple
@@ -381,71 +389,85 @@ export default function PublishWallArtPage() {
                   </div>
                 </div>
 
-                {/* Variant pricing table */}
+                {/* Variant rows */}
                 <div>
-                  <p className="text-xs text-muted tracking-wide mb-3">Sizes & Pricing</p>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-[16px_80px_1fr_1fr_60px] gap-2 px-2 mb-1">
+                    <span />
+                    <p className="text-[10px] font-medium text-zinc-400 uppercase">Size</p>
+                    <p className="text-[10px] font-medium text-zinc-400 uppercase">Price (₹)</p>
+                    <p className="text-[10px] font-medium text-zinc-400 uppercase">SKU</p>
+                    <p className="text-[10px] font-medium text-zinc-400 uppercase text-center">Qty</p>
+                  </div>
+                  <div className="space-y-1.5">
                     {ALL_SIZES.map((size) => {
                       const v = frames[ft].variants[size];
                       return (
-                        <div key={size} className={cn(
-                          "grid grid-cols-[auto_1fr_1fr_1.5fr_auto] items-center gap-3 py-2 px-3 rounded-sm",
-                          v.enabled ? "bg-cream" : "opacity-40"
-                        )}>
+                        <div
+                          key={size}
+                          className={cn(
+                            "grid grid-cols-[16px_80px_1fr_1fr_60px] items-center gap-2 px-2 py-1.5 rounded-md",
+                            v.enabled ? "bg-white border border-zinc-200" : "opacity-40"
+                          )}
+                        >
                           <input
                             type="checkbox"
                             checked={v.enabled}
                             onChange={(e) => updateVariant(ft, size, "enabled", e.target.checked)}
-                            className="accent-charcoal w-3.5 h-3.5"
+                            className="w-3.5 h-3.5 rounded accent-indigo-600"
                           />
-                          <span className="text-xs font-medium text-charcoal w-16">
+                          <span className="text-xs font-medium text-zinc-700">
                             {FRAME_SIZE_LABELS[size]}
                           </span>
                           <input
                             value={v.price}
                             onChange={(e) => updateVariant(ft, size, "price", e.target.value)}
-                            placeholder="₹ Price"
+                            placeholder="0.00"
                             disabled={!v.enabled}
-                            className="border border-border rounded-sm px-2 py-1.5 text-xs focus:outline-none focus:border-charcoal disabled:bg-gray-50 w-full"
+                            className={inputCls}
                           />
                           <input
                             value={v.sku}
                             onChange={(e) => updateVariant(ft, size, "sku", e.target.value)}
-                            placeholder="SKU"
+                            placeholder="ALK-XXXXX"
                             disabled={!v.enabled}
-                            className="border border-border rounded-sm px-2 py-1.5 text-xs focus:outline-none focus:border-charcoal disabled:bg-gray-50 w-full font-mono"
+                            className={`${inputCls} font-mono text-xs`}
                           />
                           <input
                             value={v.stock}
                             onChange={(e) => updateVariant(ft, size, "stock", e.target.value)}
-                            placeholder="Qty"
                             disabled={!v.enabled}
-                            className="border border-border rounded-sm px-2 py-1.5 text-xs focus:outline-none focus:border-charcoal disabled:bg-gray-50 w-14 text-center"
+                            className={`${inputCls} text-center`}
                           />
                         </div>
                       );
                     })}
                   </div>
-                  <p className="text-[10px] text-muted mt-2">SKUs auto-filled from design name — edit as needed.</p>
+                  <p className="text-[10px] text-zinc-400 mt-1.5 px-2">
+                    SKUs auto-filled on name blur — edit as needed.
+                  </p>
                 </div>
               </div>
             )}
           </div>
         ))}
-      </section>
+      </div>
 
-      {/* Publish */}
-      <div className="flex items-center gap-4 rounded-sm border border-border bg-warm-white p-6 shadow-sm">
+      {/* Publish bar */}
+      <div className="bg-white border border-zinc-200 rounded-lg px-5 py-4 flex items-center gap-4">
         <button
           onClick={handlePublish}
           disabled={loading}
-          className="flex items-center gap-2 px-8 py-3 bg-charcoal text-warm-white text-sm tracking-[0.12em] uppercase hover:bg-terracotta transition-colors rounded-sm disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Upload className="w-4 h-4" />
+          )}
           {loading ? "Publishing…" : "Publish All Variants"}
         </button>
-        <p className="text-xs text-muted">
-          This will create the product and all selected variants instantly.
+        <p className="text-xs text-zinc-400">
+          Creates the product and all selected variants instantly.
         </p>
       </div>
     </div>

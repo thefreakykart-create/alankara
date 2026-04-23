@@ -12,38 +12,18 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  {
-    href: "/admin",
-    label: "Overview",
-    icon: LayoutDashboard,
-  },
-  {
-    href: "/admin/products",
-    label: "Products",
-    icon: ShoppingBag,
-  },
-  {
-    href: "/admin/orders",
-    label: "Orders",
-    icon: ShoppingCart,
-  },
-  {
-    href: "/admin/categories",
-    label: "Categories",
-    icon: FolderKanban,
-  },
-  {
-    href: "/admin/customers",
-    label: "Customers",
-    icon: Users,
-  },
+  { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/products", label: "Products", icon: ShoppingBag },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/categories", label: "Categories", icon: FolderKanban },
+  { href: "/admin/customers", label: "Customers", icon: Users },
 ];
 
 export default function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-1">
+    <nav className="space-y-0.5">
       {NAV_ITEMS.map((item) => {
         const isActive =
           pathname === item.href ||
@@ -55,14 +35,14 @@ export default function AdminNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-colors",
+              "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors",
               isActive
-                ? "bg-charcoal text-warm-white"
-                : "text-charcoal hover:bg-cream"
+                ? "bg-indigo-600 text-white"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800"
             )}
           >
-            <Icon className="h-4 w-4" />
-            <span>{item.label}</span>
+            <Icon className="h-4 w-4 flex-none" />
+            {item.label}
           </Link>
         );
       })}

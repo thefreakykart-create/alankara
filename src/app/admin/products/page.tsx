@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatINR } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Manage Products — Alankara Admin",
+  title: "Products — Alankara Admin",
 };
 
 export default async function AdminProductsPage() {
@@ -29,211 +29,168 @@ export default async function AdminProductsPage() {
     { count: number; activeCount: number; minPrice: number | null; stock: number }
   >();
 
-  for (const variant of variants ?? []) {
-    const current = variantMap.get(variant.product_id) ?? {
+  for (const v of variants ?? []) {
+    const cur = variantMap.get(v.product_id) ?? {
       count: 0,
       activeCount: 0,
       minPrice: null,
       stock: 0,
     };
-
-    current.count += 1;
-    current.stock += variant.stock_quantity;
-    if (variant.is_active) current.activeCount += 1;
-    current.minPrice =
-      current.minPrice === null
-        ? variant.price
-        : Math.min(current.minPrice, variant.price);
-    variantMap.set(variant.product_id, current);
+    cur.count += 1;
+    cur.stock += v.stock_quantity;
+    if (v.is_active) cur.activeCount += 1;
+    cur.minPrice =
+      cur.minPrice === null ? v.price : Math.min(cur.minPrice, v.price);
+    variantMap.set(v.product_id, cur);
   }
 
-  const activeProducts = products?.filter((product) => product.is_active).length ?? 0;
-  const featuredProducts = products?.filter((product) => product.is_featured).length ?? 0;
-  const wallArtProducts =
-    products?.filter((product) => product.product_type === "wall_art").length ?? 0;
+  const activeCount = products?.filter((p) => p.is_active).length ?? 0;
+  const featuredCount = products?.filter((p) => p.is_featured).length ?? 0;
+  const wallArtCount =
+    products?.filter((p) => p.product_type === "wall_art").length ?? 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-            Catalog
-          </p>
-          <h2 className="mt-1 font-serif text-3xl text-charcoal">Products</h2>
-          <p className="mt-2 text-sm text-muted">
-            Review availability, featured status, and drill into individual
-            products to edit catalog data.
+          <h1 className="text-xl font-semibold text-zinc-900">Products</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Manage catalog, pricing, and inventory.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/products/new"
-            className="inline-flex items-center gap-2 rounded-sm border border-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-charcoal transition-colors hover:bg-charcoal hover:text-warm-white"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-zinc-300 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
-            <Plus className="h-3.5 w-3.5" />
-            Add General Product
+            <Plus className="h-4 w-4" />
+            New Product
           </Link>
           <Link
             href="/admin/products/publish"
-            className="inline-flex items-center gap-2 rounded-sm bg-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-warm-white transition-colors hover:bg-terracotta"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkles className="h-4 w-4" />
             Publish Wall Art
           </Link>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted">
-            Total Products
-          </p>
-          <p className="mt-3 font-serif text-3xl text-charcoal">
-            {products?.length ?? 0}
-          </p>
-        </div>
-        <div className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted">
-            Active Catalog
-          </p>
-          <p className="mt-3 font-serif text-3xl text-charcoal">
-            {activeProducts}
-          </p>
-          <p className="mt-2 text-sm text-muted">{featuredProducts} featured</p>
-        </div>
-        <div className="rounded-sm border border-border bg-warm-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted">
-            Wall Art
-          </p>
-          <p className="mt-3 font-serif text-3xl text-charcoal">
-            {wallArtProducts}
-          </p>
-          <p className="mt-2 text-sm text-muted">Variant-managed products</p>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Total Products", value: products?.length ?? 0 },
+          { label: "Active", value: activeCount, sub: `${featuredCount} featured` },
+          { label: "Wall Art", value: wallArtCount, sub: "Variant-managed" },
+        ].map((s) => (
+          <div key={s.label} className="bg-white border border-zinc-200 rounded-lg p-4">
+            <p className="text-xs font-medium text-zinc-500">{s.label}</p>
+            <p className="mt-1.5 text-2xl font-semibold text-zinc-900 tabular-nums">{s.value}</p>
+            {s.sub && <p className="mt-0.5 text-xs text-zinc-400">{s.sub}</p>}
+          </div>
+        ))}
       </div>
 
-      <div className="overflow-hidden rounded-sm border border-border bg-warm-white shadow-sm">
+      {/* Table */}
+      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-cream/40">
-                <th className="px-5 py-3 text-left text-xs uppercase tracking-[0.16em] text-muted">
-                  Product
-                </th>
-                <th className="px-5 py-3 text-left text-xs uppercase tracking-[0.16em] text-muted">
-                  Category
-                </th>
-                <th className="px-5 py-3 text-left text-xs uppercase tracking-[0.16em] text-muted">
-                  Type
-                </th>
-                <th className="px-5 py-3 text-right text-xs uppercase tracking-[0.16em] text-muted">
-                  Price
-                </th>
-                <th className="px-5 py-3 text-right text-xs uppercase tracking-[0.16em] text-muted">
-                  Stock
-                </th>
-                <th className="px-5 py-3 text-center text-xs uppercase tracking-[0.16em] text-muted">
-                  Status
-                </th>
+              <tr className="bg-zinc-50 border-b border-zinc-200">
+                <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500">Product</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500">Category</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-zinc-500">Type</th>
+                <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500">Price</th>
+                <th className="px-5 py-3 text-right text-xs font-medium text-zinc-500">Stock</th>
+                <th className="px-5 py-3 text-center text-xs font-medium text-zinc-500">Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-zinc-100">
               {products?.map((product) => {
-                const variantSummary = variantMap.get(product.id);
-                const categoryRelation = product.category as
+                const vs = variantMap.get(product.id);
+                const catRel = product.category as
                   | { name?: string }[]
                   | { name?: string }
                   | null
                   | undefined;
-                const categoryName = Array.isArray(categoryRelation)
-                  ? categoryRelation[0]?.name
-                  : categoryRelation?.name;
+                const catName = Array.isArray(catRel)
+                  ? catRel[0]?.name
+                  : catRel?.name;
                 const displayPrice =
                   product.product_type === "wall_art"
-                    ? variantSummary?.minPrice ?? 0
+                    ? vs?.minPrice ?? 0
                     : product.price;
                 const displayStock =
                   product.product_type === "wall_art"
-                    ? variantSummary?.stock ?? 0
+                    ? vs?.stock ?? 0
                     : product.stock_quantity;
 
                 return (
-                  <tr key={product.id} className="border-b border-border/70">
+                  <tr key={product.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 overflow-hidden rounded-sm bg-cream">
+                        <div className="relative h-10 w-10 overflow-hidden rounded-md bg-zinc-100 flex-none">
                           <Image
                             src={product.images?.[0] || "/placeholder.jpg"}
                             alt={product.name}
                             fill
-                            sizes="48px"
+                            sizes="40px"
                             className="object-cover"
                           />
                         </div>
                         <div className="min-w-0">
                           <Link
                             href={`/admin/products/${product.id}`}
-                            className="font-medium text-charcoal hover:text-terracotta"
+                            className="font-medium text-zinc-900 hover:text-indigo-600 transition-colors"
                           >
                             {product.name}
                           </Link>
-                          <p className="mt-1 truncate text-xs text-muted">
+                          <p className="mt-0.5 truncate text-xs text-zinc-400">
                             {product.sku || product.slug}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-muted">
-                      {categoryName || "—"}
+                    <td className="px-5 py-4 text-zinc-500 text-sm">
+                      {catName || "—"}
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="rounded-full bg-cream px-2.5 py-1 text-xs font-medium text-charcoal w-fit">
-                          {product.product_type === "wall_art"
-                            ? "Wall Art"
-                            : "General"}
-                        </span>
-                        {product.product_type === "wall_art" && (
-                          <span className="text-xs text-muted">
-                            {variantSummary?.activeCount ?? 0}/
-                            {variantSummary?.count ?? 0} variants active
-                          </span>
-                        )}
-                      </div>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-100 text-zinc-700">
+                        {product.product_type === "wall_art" ? "Wall Art" : "General"}
+                      </span>
+                      {product.product_type === "wall_art" && (
+                        <p className="mt-1 text-xs text-zinc-400">
+                          {vs?.activeCount ?? 0}/{vs?.count ?? 0} variants active
+                        </p>
+                      )}
                     </td>
-                    <td className="px-5 py-4 text-right font-medium text-charcoal">
+                    <td className="px-5 py-4 text-right font-medium text-zinc-900 tabular-nums">
                       {product.product_type === "wall_art"
                         ? `From ${formatINR(displayPrice)}`
                         : formatINR(displayPrice)}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <span
-                        className={
-                          displayStock <= 5
-                            ? "font-medium text-terracotta"
-                            : "text-charcoal"
-                        }
+                        className={`font-medium tabular-nums ${
+                          displayStock <= 5 ? "text-red-600" : "text-zinc-900"
+                        }`}
                       >
                         {displayStock}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            product.is_active
-                              ? "bg-emerald/10 text-emerald"
-                              : "bg-red-50 text-red-500"
-                          }`}
-                        >
-                          {product.is_active ? "Active" : "Inactive"}
-                        </span>
-                        {product.is_featured && (
-                          <span className="text-[10px] uppercase tracking-[0.16em] text-muted">
-                            Featured
-                          </span>
-                        )}
-                      </div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                          product.is_active
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-red-50 text-red-600 border border-red-200"
+                        }`}
+                      >
+                        {product.is_active ? "Active" : "Inactive"}
+                      </span>
+                      {product.is_featured && (
+                        <p className="mt-1 text-[10px] font-medium text-indigo-500">Featured</p>
+                      )}
                     </td>
                   </tr>
                 );

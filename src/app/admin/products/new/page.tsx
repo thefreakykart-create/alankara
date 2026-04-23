@@ -109,12 +109,20 @@ export default function NewProductPage() {
   };
 
   return (
-    <main className="min-h-screen pt-28 pb-20">
-      <div className="max-w-2xl mx-auto px-6 lg:px-8">
-        <h1 className="font-serif text-2xl lg:text-3xl text-charcoal tracking-wide mb-8">
+    <div className="space-y-6">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+          Catalog
+        </p>
+        <h2 className="mt-1 font-serif text-3xl text-charcoal tracking-wide">
           Add New Product
-        </h1>
+        </h2>
+        <p className="mt-2 text-sm text-muted">
+          Create a standard catalog product with direct pricing and stock.
+        </p>
+      </div>
 
+      <div className="max-w-3xl rounded-sm border border-border bg-warm-white p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name */}
           <div>
@@ -305,6 +313,6 @@ export default function NewProductPage() {
           </button>
         </form>
       </div>
-    </main>
+    </div>
   );
 }

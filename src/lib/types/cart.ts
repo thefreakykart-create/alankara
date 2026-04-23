@@ -10,3 +10,9 @@ export interface CartItem {
   frameType?: string; // e.g. 'Canvas'
   frameSize?: string; // e.g. '12×18"'
 }
+
+export function getCartItemId(
+  item: Pick<CartItem, "productId" | "variantId">
+): string {
+  return item.variantId ?? item.productId;
+}

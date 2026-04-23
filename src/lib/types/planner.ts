@@ -1,4 +1,4 @@
-import type { FrameType, FrameSize, Product, ProductVariant } from "./product";
+import type { FrameType, FrameSize } from "./product";
 
 export interface PlacedFrame {
   id: string;           // unique instance id

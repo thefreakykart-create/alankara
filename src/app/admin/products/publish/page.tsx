@@ -28,7 +28,7 @@ interface FrameConfig {
   variants: Record<FrameSize, VariantRow>;
 }
 
-function defaultVariants(frameType: FrameType): Record<FrameSize, VariantRow> {
+function defaultVariants(): Record<FrameSize, VariantRow> {
   const rows: Partial<Record<FrameSize, VariantRow>> = {};
   ALL_SIZES.forEach((size, i) => {
     rows[size] = {
@@ -63,7 +63,6 @@ function generateDescription(name: string, category: string, frameType: FrameTyp
 
 export default function PublishWallArtPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [designName, setDesignName] = useState("");
@@ -80,16 +79,21 @@ export default function PublishWallArtPage() {
         enabled: ft === "canvas",
         images: [],
         imagePreviews: [],
-        variants: defaultVariants(ft),
+        variants: defaultVariants(),
       };
     });
     return config as Record<FrameType, FrameConfig>;
   });
 
   useEffect(() => {
-    supabase.from("categories").select("*").order("display_order").then(({ data }) => {
-      if (data) setCategories(data);
-    });
+    const supabase = createClient();
+    supabase
+      .from("categories")
+      .select("*")
+      .order("display_order")
+      .then(({ data }) => {
+        if (data) setCategories(data);
+      });
   }, []);
 
   const toggleFrame = (ft: FrameType) => {
@@ -170,6 +174,7 @@ export default function PublishWallArtPage() {
 
     setLoading(true);
     try {
+      const supabase = createClient();
       const slug = generateSlug(designName);
       const selectedCategory = categories.find((c) => c.id === categoryId);
 
@@ -245,7 +250,7 @@ export default function PublishWallArtPage() {
 
   if (published) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 rounded-sm border border-border bg-warm-white p-8 shadow-sm">
         <CheckCircle className="w-14 h-14 text-emerald" />
         <h2 className="font-serif text-2xl text-charcoal">Published!</h2>
         <p className="text-muted text-sm">Redirecting to product page…</p>
@@ -254,10 +259,16 @@ export default function PublishWallArtPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+    <div className="max-w-5xl space-y-8">
       <div>
-        <h1 className="font-serif text-2xl text-charcoal">Publish Wall Art</h1>
-        <p className="text-muted text-sm mt-1">Upload designs and configure frame variants in one step.</p>
+        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+          Wall Art
+        </p>
+        <h2 className="mt-1 font-serif text-3xl text-charcoal">Publish Wall Art</h2>
+        <p className="mt-2 text-sm text-muted">
+          Upload a design once and configure every frame and size combination
+          from a single screen.
+        </p>
       </div>
 
       {error && (
@@ -267,7 +278,7 @@ export default function PublishWallArtPage() {
       )}
 
       {/* Step 1: Design Info */}
-      <section className="space-y-4">
+      <section className="space-y-4 rounded-sm border border-border bg-warm-white p-6 shadow-sm">
         <h2 className="text-xs tracking-[0.2em] uppercase text-muted border-b border-border pb-2">
           1 — Design Info
         </h2>
@@ -308,7 +319,7 @@ export default function PublishWallArtPage() {
       </section>
 
       {/* Step 2: Frame Types */}
-      <section className="space-y-6">
+      <section className="space-y-6 rounded-sm border border-border bg-warm-white p-6 shadow-sm">
         <h2 className="text-xs tracking-[0.2em] uppercase text-muted border-b border-border pb-2">
           2 — Frame Types & Variants
         </h2>
@@ -424,7 +435,7 @@ export default function PublishWallArtPage() {
       </section>
 
       {/* Publish */}
-      <div className="flex items-center gap-4 pt-4 border-t border-border">
+      <div className="flex items-center gap-4 rounded-sm border border-border bg-warm-white p-6 shadow-sm">
         <button
           onClick={handlePublish}
           disabled={loading}

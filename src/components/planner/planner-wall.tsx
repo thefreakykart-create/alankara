@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { X, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,13 +56,13 @@ export default function PlannerWall({
     };
   };
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragState.current) return;
     const { frameId, startMouseX, startMouseY, startFrameX, startFrameY } = dragState.current;
     const dx = e.clientX - startMouseX;
     const dy = e.clientY - startMouseY;
     onMove(frameId, startFrameX + dx, startFrameY + dy);
-  }, [onMove]);
+  };
 
   const handleMouseUp = () => { dragState.current = null; };
 
@@ -76,17 +76,21 @@ export default function PlannerWall({
     touchState.current = { frameId: frame.id, startTX: t.clientX, startTY: t.clientY, startFX: frame.x, startFY: frame.y };
   };
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (!touchState.current) return;
     const t = e.touches[0];
     const { frameId, startTX, startTY, startFX, startFY } = touchState.current;
     onMove(frameId, startFX + (t.clientX - startTX), startFY + (t.clientY - startTY));
-  }, [onMove]);
+  };
 
   const handleTouchEnd = () => { touchState.current = null; };
 
-  const selectedFrame = frames.find((f) => f.id === selectedId);
   const configFrame = frames.find((f) => f.id === configOpen);
+  const configPanelLeft = configFrame
+    ? configFrame.x + configFrame.w + 10 > 340
+      ? Math.max(16, configFrame.x - 230)
+      : configFrame.x + configFrame.w + 10
+    : 16;
 
   return (
     <div
@@ -175,7 +179,7 @@ export default function PlannerWall({
         <div
           className="absolute bg-warm-white border border-border rounded-sm shadow-xl p-4 z-20 w-56"
           style={{
-            left: Math.min(configFrame.x + configFrame.w + 10, (wallRef.current?.clientWidth ?? 600) - 240),
+            left: configPanelLeft,
             top: configFrame.y,
           }}
           onClick={(e) => e.stopPropagation()}

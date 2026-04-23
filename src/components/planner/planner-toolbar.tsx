@@ -3,7 +3,7 @@
 import { ShoppingBag, Camera, Trash2, LayoutGrid, AlignHorizontalJustifyCenter, Layers, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatINR } from "@/lib/utils";
-import type { WallConfig, Arrangement } from "@/lib/types/planner";
+import type { Arrangement } from "@/lib/types/planner";
 import { WALL_COLORS } from "@/lib/types/planner";
 
 interface PlannerToolbarProps {

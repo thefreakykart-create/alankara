@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/stores/cart-store";
 import { formatINR } from "@/lib/utils";
 import { SHIPPING_RATES } from "@/lib/constants";
+import { getCartItemId } from "@/lib/types/cart";
 
 export default function CartPage() {
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const { items, removeItem, updateQuantity } = useCartStore();
   const subtotal = useCartStore((s) => s.getSubtotal());
@@ -58,10 +62,7 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="lg:col-span-2 divide-y divide-border">
             {items.map((item) => (
-              <div
-                key={item.productId}
-                className="flex gap-4 py-6 first:pt-0"
-              >
+              <div key={getCartItemId(item)} className="flex gap-4 py-6 first:pt-0">
                 {/* Image */}
                 <Link
                   href={`/products/${item.slug}`}
@@ -93,7 +94,7 @@ export default function CartPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity - 1)
+                          updateQuantity(getCartItemId(item), item.quantity - 1)
                         }
                         className="w-8 h-8 border border-border rounded-sm flex items-center justify-center hover:border-charcoal transition-colors"
                       >
@@ -104,7 +105,7 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() =>
-                          updateQuantity(item.productId, item.quantity + 1)
+                          updateQuantity(getCartItemId(item), item.quantity + 1)
                         }
                         className="w-8 h-8 border border-border rounded-sm flex items-center justify-center hover:border-charcoal transition-colors"
                       >
@@ -114,7 +115,7 @@ export default function CartPage() {
 
                     {/* Remove */}
                     <button
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeItem(getCartItemId(item))}
                       className="text-muted hover:text-red-500 transition-colors p-1"
                       aria-label="Remove item"
                     >

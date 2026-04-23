@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import GalleryWallPlanner from "@/components/planner/gallery-wall-planner";
 import type { Metadata } from "next";
 
@@ -58,12 +59,12 @@ export default async function PlannerPage() {
             <p className="text-sm text-muted max-w-xs">
               Publish your first wall art designs from the admin panel to start planning.
             </p>
-            <a
+            <Link
               href="/admin/products/publish"
               className="mt-2 px-5 py-2.5 bg-charcoal text-warm-white text-xs tracking-wider uppercase rounded-sm hover:bg-terracotta transition-colors"
             >
               Publish Wall Art
-            </a>
+            </Link>
           </div>
         ) : (
           <GalleryWallPlanner products={productsWithVariants} />

@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 export default function MagneticCursor() {
-  const cursorRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [hoverText, setHoverText] = useState("");
-  const [isVisible, setIsVisible] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
@@ -15,14 +18,12 @@ export default function MagneticCursor() {
   const springConfig = { damping: 25, stiffness: 300 };
   const cursorXSpring = useSpring(cursorX, springConfig);
   const cursorYSpring = useSpring(cursorY, springConfig);
+  const isTouchDevice =
+    isClient &&
+    ("ontouchstart" in window || navigator.maxTouchPoints > 0);
 
   useEffect(() => {
-    // Only show custom cursor on desktop
-    const isTouchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    if (isTouchDevice) return;
-
-    setIsVisible(true);
+    if (!isClient || isTouchDevice) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       cursorX.set(e.clientX);
@@ -56,15 +57,14 @@ export default function MagneticCursor() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseover", handleMouseOver);
     };
-  }, [cursorX, cursorY]);
+  }, [cursorX, cursorY, isClient, isTouchDevice]);
 
-  if (!isVisible) return null;
+  if (!isClient || isTouchDevice) return null;
 
   return (
     <>
       {/* Main cursor dot */}
       <motion.div
-        ref={cursorRef}
         className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-difference"
         style={{
           x: cursorXSpring,

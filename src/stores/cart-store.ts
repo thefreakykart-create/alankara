@@ -2,13 +2,13 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CartItem } from "@/lib/types/cart";
+import { getCartItemId, type CartItem } from "@/lib/types/cart";
 
 interface CartStore {
   items: CartItem[];
   addItem: (item: CartItem) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (lineId: string) => void;
+  updateQuantity: (lineId: string, quantity: number) => void;
   clearCart: () => void;
   getItemCount: () => number;
   getSubtotal: () => number;
@@ -21,15 +21,14 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) =>
         set((state) => {
-          // For variants, match by variantId; for general products match by productId
-          const key = item.variantId ?? item.productId;
+          const key = getCartItemId(item);
           const existing = state.items.find(
-            (i) => (i.variantId ?? i.productId) === key
+            (i) => getCartItemId(i) === key
           );
           if (existing) {
             return {
               items: state.items.map((i) =>
-                (i.variantId ?? i.productId) === key
+                getCartItemId(i) === key
                   ? { ...i, quantity: i.quantity + item.quantity }
                   : i
               ),
@@ -38,20 +37,18 @@ export const useCartStore = create<CartStore>()(
           return { items: [...state.items, item] };
         }),
 
-      removeItem: (productId) =>
+      removeItem: (lineId) =>
         set((state) => ({
-          items: state.items.filter(
-            (i) => (i.variantId ?? i.productId) !== productId
-          ),
+          items: state.items.filter((i) => getCartItemId(i) !== lineId),
         })),
 
-      updateQuantity: (productId, quantity) =>
+      updateQuantity: (lineId, quantity) =>
         set((state) => ({
           items:
             quantity <= 0
-              ? state.items.filter((i) => (i.variantId ?? i.productId) !== productId)
+              ? state.items.filter((i) => getCartItemId(i) !== lineId)
               : state.items.map((i) =>
-                  (i.variantId ?? i.productId) === productId ? { ...i, quantity } : i
+                  getCartItemId(i) === lineId ? { ...i, quantity } : i
                 ),
         })),
 

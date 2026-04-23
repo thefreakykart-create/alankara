@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Camera, Upload, Download, RotateCcw, ZoomIn, ZoomOut, Info } from "lucide-react";
 import type { FrameSize } from "@/lib/types/product";
 import { FRAME_SIZE_CM, FRAME_SIZE_LABELS } from "@/lib/types/product";
@@ -24,6 +24,21 @@ interface FrameState {
 // We use this to approximate real-world scale
 const SCREEN_REF_CM = 15;
 
+function computeFrameDisplaySize(
+  activeSize: FrameSize | null,
+  scale: number,
+  containerHeight: number
+) {
+  if (!activeSize) return { w: 200, h: 267 };
+  const effectiveContainerHeight = containerHeight || 600;
+  const pxPerCm = effectiveContainerHeight / SCREEN_REF_CM;
+  const cm = FRAME_SIZE_CM[activeSize];
+  return {
+    w: cm.w * pxPerCm * scale,
+    h: cm.h * pxPerCm * scale,
+  };
+}
+
 export default function TryOnWallModal({
   productName,
   activeImage,
@@ -43,6 +58,7 @@ export default function TryOnWallModal({
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(true);
   const [webXRSupported, setWebXRSupported] = useState(false);
+  const [containerHeight, setContainerHeight] = useState(0);
 
   // Frame state
   const [frame, setFrame] = useState<FrameState>({ x: 0, y: -60, scale: 1, rotation: 0 });
@@ -51,19 +67,24 @@ export default function TryOnWallModal({
   const dragRef = useRef({ active: false, startX: 0, startY: 0, originX: 0, originY: 0 });
   const pinchRef = useRef({ active: false, startDist: 0, startScale: 1, startAngle: 0, startRotation: 0 });
 
-  // Compute frame display size from real-world dimensions
-  const getFrameDisplaySize = useCallback(() => {
+  useEffect(() => {
     const container = containerRef.current;
-    if (!container || !activeSize) return { w: 200, h: 267 };
-    const containerH = container.clientHeight;
-    // pixels per cm: phone screen ~15cm tall
-    const pxPerCm = containerH / SCREEN_REF_CM;
-    const cm = FRAME_SIZE_CM[activeSize];
-    return {
-      w: cm.w * pxPerCm * frame.scale,
-      h: cm.h * pxPerCm * frame.scale,
+    if (!container) return;
+
+    const observer = new ResizeObserver(() => {
+      setContainerHeight(container.clientHeight);
+    });
+    observer.observe(container);
+
+    const rafId = requestAnimationFrame(() => {
+      setContainerHeight(container.clientHeight);
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
-  }, [activeSize, frame.scale]);
+  }, [mode]);
 
   // Check WebXR
   useEffect(() => {
@@ -82,6 +103,33 @@ export default function TryOnWallModal({
     img.src = activeImage;
     img.onload = () => { frameImgRef.current = img; };
   }, [activeImage]);
+
+  const drawFrame = useCallback(
+    (ctx: CanvasRenderingContext2D, cw: number, ch: number) => {
+      const img = frameImgRef.current;
+      if (!img) return;
+      const { w, h } = computeFrameDisplaySize(
+        activeSize,
+        frame.scale,
+        containerHeight
+      );
+      const cx = cw / 2 + frame.x;
+      const cy = ch / 2 + frame.y;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate((frame.rotation * Math.PI) / 180);
+
+      // Drop shadow
+      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 12;
+
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    },
+    [activeSize, containerHeight, frame.scale, frame.x, frame.y, frame.rotation]
+  );
 
   // Camera stream
   useEffect(() => {
@@ -145,28 +193,7 @@ export default function TryOnWallModal({
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [mode, frame]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const drawFrame = (ctx: CanvasRenderingContext2D, cw: number, ch: number) => {
-    const img = frameImgRef.current;
-    if (!img) return;
-    const { w, h } = getFrameDisplaySize();
-    const cx = cw / 2 + frame.x;
-    const cy = ch / 2 + frame.y;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate((frame.rotation * Math.PI) / 180);
-
-    // Drop shadow
-    ctx.shadowColor = "rgba(0,0,0,0.45)";
-    ctx.shadowBlur = 24;
-    ctx.shadowOffsetY = 12;
-
-    ctx.drawImage(img, -w / 2, -h / 2, w, h);
-    ctx.restore();
-  };
-
-  // Draw static frame on upload photo
-  const drawUploadFrame = useCallback(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container || mode !== "upload" || !uploadedImage) return;
@@ -194,11 +221,7 @@ export default function TryOnWallModal({
       ctx.drawImage(bg, dx, dy, dw, dh);
       drawFrame(ctx, canvas.width, canvas.height);
     };
-  }, [mode, uploadedImage, frame]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (mode === "upload") drawUploadFrame();
-  }, [mode, uploadedImage, frame, drawUploadFrame]);
+  }, [mode, uploadedImage, frame, containerHeight, activeImage, drawFrame]);
 
   // ── Gesture handlers ──
 
@@ -292,8 +315,6 @@ export default function TryOnWallModal({
   const takeScreenshot = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // For camera mode the canvas is already composited
-    if (mode === "upload") drawUploadFrame();
     setTimeout(() => {
       const data = canvas.toDataURL("image/jpeg", 0.92);
       setScreenshot(data);
@@ -304,7 +325,11 @@ export default function TryOnWallModal({
     setFrame({ x: 0, y: -60, scale: 1, rotation: 0 });
   };
 
-  const { w: fw, h: fh } = getFrameDisplaySize();
+  const { w: fw, h: fh } = computeFrameDisplaySize(
+    activeSize,
+    frame.scale,
+    containerHeight
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col" style={{ touchAction: "none" }}>

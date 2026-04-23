@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useCartStore } from "@/stores/cart-store";
 import { useCartDrawerStore } from "@/stores/cart-drawer-store";
 import { useToast } from "@/components/ui/toast";
@@ -29,7 +29,6 @@ export default function GalleryWallPlanner({ products }: GalleryWallPlannerProps
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [wallColor, setWallColor] = useState("#FAF7F2");
   const [cartAdded, setCartAdded] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const wallRef = useRef<HTMLDivElement>(null);
   const dragProductRef = useRef<(Product & { variants: ProductVariant[] }) | null>(null);

@@ -9,6 +9,7 @@ import { useCartStore } from "@/stores/cart-store";
 import { useCartDrawerStore } from "@/stores/cart-drawer-store";
 import { formatINR } from "@/lib/utils";
 import { SHIPPING_RATES } from "@/lib/constants";
+import { getCartItemId } from "@/lib/types/cart";
 
 export default function CartDrawer() {
   const { isOpen, close } = useCartDrawerStore();
@@ -80,7 +81,7 @@ export default function CartDrawer() {
               <>
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                   {items.map((item) => (
-                    <div key={item.productId} className="flex gap-3">
+                    <div key={getCartItemId(item)} className="flex gap-3">
                       <Link
                         href={`/products/${item.slug}`}
                         onClick={close}
@@ -111,10 +112,7 @@ export default function CartDrawer() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() =>
-                                updateQuantity(
-                                  item.productId,
-                                  item.quantity - 1
-                                )
+                                updateQuantity(getCartItemId(item), item.quantity - 1)
                               }
                               className="w-7 h-7 border border-border rounded-sm flex items-center justify-center hover:border-charcoal transition-colors"
                             >
@@ -125,10 +123,7 @@ export default function CartDrawer() {
                             </span>
                             <button
                               onClick={() =>
-                                updateQuantity(
-                                  item.productId,
-                                  item.quantity + 1
-                                )
+                                updateQuantity(getCartItemId(item), item.quantity + 1)
                               }
                               className="w-7 h-7 border border-border rounded-sm flex items-center justify-center hover:border-charcoal transition-colors"
                             >
@@ -136,7 +131,7 @@ export default function CartDrawer() {
                             </button>
                           </div>
                           <button
-                            onClick={() => removeItem(item.productId)}
+                            onClick={() => removeItem(getCartItemId(item))}
                             className="text-muted hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

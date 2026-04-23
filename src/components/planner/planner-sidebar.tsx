@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Search, GripVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { formatINR } from "@/lib/utils";
 import type { Product, ProductVariant } from "@/lib/types/product";
 import { FRAME_TYPE_LABELS } from "@/lib/types/product";

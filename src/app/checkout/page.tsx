@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { formatINR } from "@/lib/utils";
 import { INDIAN_STATES, PINCODE_REGEX, SHIPPING_RATES } from "@/lib/constants";
+import { getCartItemId } from "@/lib/types/cart";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -257,7 +258,7 @@ export default function CheckoutPage() {
               {/* Items */}
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {items.map((item) => (
-                  <div key={item.productId} className="flex gap-3">
+                  <div key={getCartItemId(item)} className="flex gap-3">
                     <div className="relative w-12 h-14 flex-shrink-0 bg-cream rounded-sm overflow-hidden">
                       <Image
                         src={item.image || "/placeholder.jpg"}

@@ -3,7 +3,12 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import { updateProductAction, updateProductVariantAction } from "@/app/admin/actions";
+import {
+  updateProductAction,
+  updateProductVariantAction,
+  deleteProductAction,
+  updateVariantImagesAction,
+} from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
 import { formatINR } from "@/lib/utils";
 import {
@@ -226,12 +231,28 @@ export default async function AdminProductDetailPage({ params }: Props) {
             </label>
           </div>
 
-          <button
-            type="submit"
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors"
-          >
-            Save Product
-          </button>
+          <div className="flex items-center gap-3 pt-2 border-t border-zinc-100">
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors"
+            >
+              Save Product
+            </button>
+            <form
+              action={deleteProductAction}
+              onSubmit={(e) => {
+                if (!confirm("Delete this product? This cannot be undone.")) e.preventDefault();
+              }}
+            >
+              <input type="hidden" name="productId" value={product.id} />
+              <button
+                type="submit"
+                className="px-5 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-md transition-colors"
+              >
+                Delete Product
+              </button>
+            </form>
+          </div>
         </form>
 
         {/* Sidebar info */}
@@ -385,6 +406,49 @@ export default async function AdminProductDetailPage({ params }: Props) {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Variant image management */}
+      {product.product_type === "wall_art" && variants && variants.length > 0 && (
+        <div className="bg-white border border-zinc-200 rounded-lg p-5">
+          <h2 className="text-sm font-semibold text-zinc-900 mb-1">Variant Images</h2>
+          <p className="text-sm text-zinc-500 mb-5">
+            Update gallery image URLs per frame variant (one URL per line).
+          </p>
+          <div className="space-y-4">
+            {variants.map((v: {
+              id: string;
+              frame_type: FrameType;
+              size: FrameSize;
+              images: string[];
+            }) => (
+              <form key={v.id} action={updateVariantImagesAction} className="grid gap-3 md:grid-cols-[200px_1fr_auto] items-start">
+                <input type="hidden" name="variantId" value={v.id} />
+                <input type="hidden" name="productId" value={product.id} />
+                <div className="pt-2">
+                  <p className="text-sm font-medium text-zinc-900">
+                    {FRAME_TYPE_LABELS[v.frame_type]}
+                  </p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{FRAME_SIZE_LABELS[v.size]}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{v.images?.length ?? 0} image{(v.images?.length ?? 0) !== 1 ? "s" : ""}</p>
+                </div>
+                <textarea
+                  name="imageUrls"
+                  rows={3}
+                  defaultValue={(v.images ?? []).join("\n")}
+                  placeholder="https://…&#10;https://…"
+                  className="w-full px-3 py-2.5 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-mono text-xs"
+                />
+                <button
+                  type="submit"
+                  className="h-10 px-4 border border-zinc-300 hover:bg-zinc-50 text-zinc-700 text-xs font-medium rounded-md transition-colors whitespace-nowrap"
+                >
+                  Save
+                </button>
+              </form>
+            ))}
           </div>
         </div>
       )}

@@ -8,15 +8,21 @@ import {
   ShoppingCart,
   FolderKanban,
   Users,
+  BarChart2,
+  Tag,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/admin/products", label: "Products", icon: ShoppingBag },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/categories", label: "Categories", icon: FolderKanban },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/coupons", label: "Coupons", icon: Tag },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export default function AdminNav() {

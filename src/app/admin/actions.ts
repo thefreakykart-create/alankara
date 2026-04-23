@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { generateSlug } from "@/lib/utils";
 import { createAdminServiceClient, requireAdmin } from "@/lib/admin";
 import { ORDER_STATUS_LABELS } from "@/lib/constants";
@@ -230,4 +231,149 @@ export async function updateOrderStatusAction(formData: FormData) {
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/account");
+}
+
+// ─── Product toggle (active / featured) ───────────────────────────────────────
+
+export async function toggleProductFieldAction(
+  productId: string,
+  field: "is_active" | "is_featured",
+  value: boolean
+) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+  const { error } = await admin
+    .from("products")
+    .update({ [field]: value })
+    .eq("id", productId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/products");
+  revalidatePath("/admin");
+}
+
+// ─── Delete product ────────────────────────────────────────────────────────────
+
+export async function deleteProductAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+  const productId = parseText(formData.get("productId"));
+  if (!productId) throw new Error("Missing productId.");
+
+  // Delete variants first (FK)
+  await admin.from("product_variants").delete().eq("product_id", productId);
+  const { error } = await admin.from("products").delete().eq("id", productId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/products");
+  revalidatePath("/admin");
+  redirect("/admin/products");
+}
+
+// ─── Variant images ────────────────────────────────────────────────────────────
+
+export async function updateVariantImagesAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+  const variantId = parseText(formData.get("variantId"));
+  const productId = parseText(formData.get("productId"));
+  const imageUrls = String(formData.get("imageUrls") ?? "")
+    .split("\n")
+    .map((u) => u.trim())
+    .filter(Boolean);
+
+  if (!variantId || !productId) throw new Error("Missing fields.");
+  const { error } = await admin
+    .from("product_variants")
+    .update({ images: imageUrls })
+    .eq("id", variantId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+// ─── Coupons ───────────────────────────────────────────────────────────────────
+
+export async function createCouponAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+
+  const code = parseText(formData.get("code"))?.toUpperCase();
+  const type = parseText(formData.get("type")) as "percentage" | "fixed" | null;
+  const value = parseIntValue(formData.get("value"), 0);
+  const minOrderAmount = parsePriceToPaise(formData.get("minOrderAmount")) ?? 0;
+  const maxUses = parseOptionalNumber(formData.get("maxUses"));
+  const expiresAt = parseText(formData.get("expiresAt"));
+
+  if (!code || !type) throw new Error("Code and type are required.");
+  const finalValue = type === "fixed" ? Math.round(value * 100) : value;
+
+  const { error } = await admin.from("coupons").insert({
+    code,
+    type,
+    value: finalValue,
+    min_order_amount: minOrderAmount,
+    max_uses: maxUses,
+    expires_at: expiresAt || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/coupons");
+}
+
+export async function toggleCouponAction(couponId: string, isActive: boolean) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+  const { error } = await admin
+    .from("coupons")
+    .update({ is_active: isActive })
+    .eq("id", couponId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/coupons");
+}
+
+export async function deleteCouponAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+  const couponId = parseText(formData.get("couponId"));
+  if (!couponId) throw new Error("Missing couponId.");
+  const { error } = await admin.from("coupons").delete().eq("id", couponId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/coupons");
+}
+
+// ─── Site settings ─────────────────────────────────────────────────────────────
+
+export async function updateSettingsAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+
+  const store = {
+    name: parseText(formData.get("storeName")) ?? "Alankara",
+    tagline: parseText(formData.get("tagline")) ?? "",
+    email: parseText(formData.get("email")) ?? "",
+    phone: parseText(formData.get("phone")) ?? "",
+    address: parseText(formData.get("address")) ?? "",
+    instagram: parseText(formData.get("instagram")) ?? "",
+    facebook: parseText(formData.get("facebook")) ?? "",
+    twitter: parseText(formData.get("twitter")) ?? "",
+  };
+
+  const announcement = {
+    text: parseText(formData.get("announcementText")) ?? "",
+    link: parseText(formData.get("announcementLink")) ?? "",
+    is_active: parseCheckbox(formData.get("announcementActive")),
+    bg_color: parseText(formData.get("announcementBg")) ?? "#1a1a1a",
+    text_color: parseText(formData.get("announcementTextColor")) ?? "#ffffff",
+  };
+
+  await Promise.all([
+    admin
+      .from("site_settings")
+      .upsert({ key: "store", value: store, updated_at: new Date().toISOString() }),
+    admin
+      .from("site_settings")
+      .upsert({ key: "announcement", value: announcement, updated_at: new Date().toISOString() }),
+  ]);
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/");
 }

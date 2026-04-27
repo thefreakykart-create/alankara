@@ -378,6 +378,65 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/");
 }
 
+// ─── Product groups ────────────────────────────────────────────────────────────
+
+export async function createProductGroupAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+
+  const productId = parseText(formData.get("productId"));
+  const groupName = parseText(formData.get("groupName"));
+  if (!productId || !groupName) throw new Error("Missing fields.");
+
+  const { data: group, error: groupError } = await admin
+    .from("product_groups")
+    .insert({ name: groupName })
+    .select("id")
+    .single();
+  if (groupError) throw new Error(groupError.message);
+
+  const { error } = await admin
+    .from("products")
+    .update({ group_id: group.id })
+    .eq("id", productId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+export async function joinProductGroupAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+
+  const productId = parseText(formData.get("productId"));
+  const groupId = parseText(formData.get("groupId"));
+  if (!productId || !groupId) throw new Error("Missing fields.");
+
+  const { error } = await admin
+    .from("products")
+    .update({ group_id: groupId })
+    .eq("id", productId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+export async function removeFromGroupAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+
+  const productId = parseText(formData.get("productId"));
+  if (!productId) throw new Error("Missing productId.");
+
+  const { error } = await admin
+    .from("products")
+    .update({ group_id: null })
+    .eq("id", productId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/products/${productId}`);
+}
+
 // ─── Publish wall art ──────────────────────────────────────────────────────────
 
 export interface VariantPayload {
@@ -438,6 +497,75 @@ export async function publishWallArtAction(payload: PublishWallArtPayload): Prom
     .from("product_variants")
     .insert(variantRows);
 
+  if (variantError) throw new Error(variantError.message);
+
+  revalidatePath("/admin/products");
+  revalidatePath("/products");
+  revalidatePath("/");
+
+  return product.id;
+}
+
+export interface SingleFrameVariantPayload {
+  size: string;
+  price: number;
+  compare_at_price: number | null;
+  sku: string | null;
+  stock_quantity: number;
+  images: string[];
+}
+
+export interface PublishSingleFramePayload {
+  name: string;
+  slug: string;
+  description: string;
+  category_id: string;
+  frame_type: string;
+  is_featured: boolean;
+  variants: SingleFrameVariantPayload[];
+}
+
+export async function publishSingleFrameProductAction(
+  payload: PublishSingleFramePayload
+): Promise<string> {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+
+  const { data: product, error: productError } = await admin
+    .from("products")
+    .insert({
+      name: payload.name,
+      slug: payload.slug,
+      description: payload.description,
+      product_type: "wall_art",
+      frame_type: payload.frame_type,
+      price: 0,
+      category_id: payload.category_id,
+      images: [],
+      stock_quantity: 0,
+      is_active: true,
+      is_featured: payload.is_featured,
+    })
+    .select("id")
+    .single();
+
+  if (productError) throw new Error(productError.message);
+
+  const variantRows = payload.variants.map((v) => ({
+    product_id: product.id,
+    frame_type: payload.frame_type,
+    size: v.size,
+    price: v.price,
+    compare_at_price: v.compare_at_price,
+    sku: v.sku,
+    stock_quantity: v.stock_quantity,
+    images: v.images,
+    is_active: true,
+  }));
+
+  const { error: variantError } = await admin
+    .from("product_variants")
+    .insert(variantRows);
   if (variantError) throw new Error(variantError.message);
 
   revalidatePath("/admin/products");

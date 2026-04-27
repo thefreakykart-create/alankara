@@ -51,18 +51,32 @@ export default async function ProductPage({ params }: PageProps) {
         .select("*")
         .eq("product_id", product.id)
         .eq("is_active", true)
-        .order("frame_type")
         .order("size")
     : { data: [] };
 
-  // Related products from same category
-  const { data: related } = await supabase
+  // Fetch sibling products in the same group (for frame type switching)
+  const { data: groupProducts } = product.group_id
+    ? await supabase
+        .from("products")
+        .select("id, name, slug, frame_type")
+        .eq("group_id", product.group_id)
+        .eq("is_active", true)
+        .order("frame_type")
+    : { data: [] };
+
+  // Related products from same category, excluding same group members
+  const relatedQuery = supabase
     .from("products")
     .select("*, category:categories(*)")
     .eq("is_active", true)
     .eq("category_id", product.category_id)
     .neq("id", product.id)
-    .limit(4);
+    .limit(product.group_id ? 8 : 4);
+
+  const { data: relatedRaw } = await relatedQuery;
+  const related = product.group_id
+    ? (relatedRaw ?? []).filter((p) => p.group_id !== product.group_id).slice(0, 4)
+    : (relatedRaw ?? []).slice(0, 4);
 
   // ── Wall Art Product (variant-based) ──
   if (product.product_type === "wall_art" && variants && variants.length > 0) {
@@ -70,7 +84,8 @@ export default async function ProductPage({ params }: PageProps) {
       <WallArtProduct
         product={product}
         variants={variants}
-        related={related ?? []}
+        related={related}
+        groupProducts={groupProducts ?? []}
       />
     );
   }

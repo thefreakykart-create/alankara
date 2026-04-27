@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -20,7 +21,7 @@ import { useCartStore } from "@/stores/cart-store";
 import { useCartDrawerStore } from "@/stores/cart-drawer-store";
 import { useToast } from "@/components/ui/toast";
 import { formatINR, getDiscountPercent, cn } from "@/lib/utils";
-import type { Product, ProductVariant, FrameType, FrameSize } from "@/lib/types/product";
+import type { Product, ProductVariant, FrameType, FrameSize, GroupProduct } from "@/lib/types/product";
 import {
   FRAME_TYPE_LABELS,
   FRAME_SIZE_LABELS,
@@ -34,6 +35,7 @@ interface WallArtProductProps {
   product: Product;
   variants: ProductVariant[];
   related: Product[];
+  groupProducts?: GroupProduct[];
 }
 
 const FRAME_MATERIALS: Record<FrameType, { texture: string }> = {
@@ -44,13 +46,14 @@ const FRAME_MATERIALS: Record<FrameType, { texture: string }> = {
 
 const ALL_SIZES: FrameSize[] = ["8x12", "12x18", "18x24", "24x36"];
 
-export default function WallArtProduct({ product, variants, related }: WallArtProductProps) {
+export default function WallArtProduct({ product, variants, related, groupProducts = [] }: WallArtProductProps) {
+  const router = useRouter();
   const activeVariants = variants.filter((v) => v.is_active);
 
-  const defaultFrameType = (activeVariants[0]?.frame_type ?? "canvas") as FrameType;
-  const defaultSize = (activeVariants.find((v) => v.frame_type === defaultFrameType)?.size ?? null) as FrameSize | null;
+  // Determine current frame type from product.frame_type or first variant
+  const currentFrameType = (product.frame_type ?? activeVariants[0]?.frame_type ?? "canvas") as FrameType;
+  const defaultSize = (activeVariants[0]?.size ?? null) as FrameSize | null;
 
-  const [activeFrameType, setActiveFrameType] = useState<FrameType>(defaultFrameType);
   const [activeSize, setActiveSize] = useState<FrameSize | null>(defaultSize);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -62,30 +65,38 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
   const openCart = useCartDrawerStore((s) => s.open);
   const { toast } = useToast();
 
+  // Frame type tabs: use group products if available, else derive from variants (legacy)
+  const hasGroup = groupProducts.length > 1;
+  const availableFrameTypes: FrameType[] = hasGroup
+    ? groupProducts.map((p) => p.frame_type)
+    : (Array.from(new Set(activeVariants.map((v) => v.frame_type))) as FrameType[]);
+
   const handleFrameChange = useCallback((ft: FrameType) => {
-    setActiveFrameType(ft);
+    if (hasGroup) {
+      const target = groupProducts.find((p) => p.frame_type === ft);
+      if (target && target.slug !== product.slug) {
+        router.push(`/products/${target.slug}`);
+      }
+      return;
+    }
+    // Legacy: same product multi-frame-type
     setActiveImageIndex(0);
     const firstSize = (activeVariants.find((v) => v.frame_type === ft)?.size ?? null) as FrameSize | null;
     setActiveSize(firstSize);
-  }, [activeVariants]);
+  }, [hasGroup, groupProducts, product.slug, activeVariants, router]);
 
   const galleryImages = (() => {
     const imgs = activeVariants
-      .filter((v) => v.frame_type === activeFrameType)
       .flatMap((v) => v.images)
       .filter(Boolean);
-    return imgs.length > 0 ? imgs : (product.images ?? []);
+    // De-dupe
+    return [...new Map(imgs.map((u) => [u, u])).values()];
   })();
+  const fallbackImages = galleryImages.length > 0 ? galleryImages : (product.images ?? []);
 
-  const clampedIndex = Math.min(activeImageIndex, Math.max(0, galleryImages.length - 1));
+  const clampedIndex = Math.min(activeImageIndex, Math.max(0, fallbackImages.length - 1));
 
-  const availableFrameTypes = Array.from(
-    new Set(activeVariants.map((v) => v.frame_type))
-  ) as FrameType[];
-
-  const activeVariant = activeVariants.find(
-    (v) => v.frame_type === activeFrameType && v.size === activeSize
-  ) ?? null;
+  const activeVariant = activeVariants.find((v) => v.size === activeSize) ?? null;
 
   const inStock = activeVariant ? activeVariant.stock_quantity > 0 : false;
   const maxQty = activeVariant ? Math.min(activeVariant.stock_quantity, 10) : 0;
@@ -98,12 +109,12 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
     addItem({
       productId: product.id,
       variantId: activeVariant.id,
-      name: `${product.name} — ${FRAME_TYPE_LABELS[activeFrameType]}`,
+      name: `${product.name}`,
       price: activeVariant.price,
-      image: activeVariant.images?.[0] ?? "",
+      image: fallbackImages[0] ?? "",
       quantity,
       slug: product.slug,
-      frameType: FRAME_TYPE_LABELS[activeFrameType],
+      frameType: FRAME_TYPE_LABELS[currentFrameType],
       frameSize: FRAME_SIZE_LABELS[activeSize],
     });
     setAdded(true);
@@ -121,7 +132,7 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
     {
       id: "materials",
       label: "Materials & Craftsmanship",
-      content: `${FRAME_TYPE_DESCRIPTIONS[activeFrameType]} Printed with archival-grade, fade-resistant inks for lasting vibrancy. Each piece is hand-inspected before dispatch.`,
+      content: `${FRAME_TYPE_DESCRIPTIONS[currentFrameType]} Printed with archival-grade, fade-resistant inks for lasting vibrancy. Each piece is hand-inspected before dispatch.`,
     },
     {
       id: "shipping",
@@ -161,16 +172,16 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
           {/* Main image with crossfade */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${activeFrameType}-${clampedIndex}`}
+              key={clampedIndex}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4 }}
               className="absolute inset-0"
             >
-              {galleryImages[clampedIndex] ? (
+              {fallbackImages[clampedIndex] ? (
                 <Image
-                  src={galleryImages[clampedIndex]}
+                  src={fallbackImages[clampedIndex]}
                   alt={product.name}
                   fill
                   sizes="(max-width: 1024px) 100vw, 58vw"
@@ -190,14 +201,14 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
           {/* Frame label — bottom left */}
           <div className="absolute bottom-4 left-5 z-20">
             <span className="text-[10px] tracking-[0.2em] uppercase text-white/80 font-medium">
-              {FRAME_TYPE_LABELS[activeFrameType]} Print
+              {FRAME_TYPE_LABELS[currentFrameType]} Print
             </span>
           </div>
 
           {/* Thumbnail strip — bottom center */}
-          {galleryImages.length > 1 && (
+          {fallbackImages.length > 1 && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-              {galleryImages.map((img, i) => (
+              {fallbackImages.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveImageIndex(i)}
@@ -262,20 +273,20 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
                       onClick={() => handleFrameChange(ft)}
                       className={cn(
                         "flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all duration-200 text-left",
-                        activeFrameType === ft
+                        currentFrameType === ft
                           ? "border-charcoal bg-charcoal"
                           : "border-border bg-white hover:border-charcoal/30"
                       )}
                     >
                       <div className={cn(
                         "w-full h-5 rounded-md",
-                        activeFrameType === ft
+                        currentFrameType === ft
                           ? "bg-white/20"
                           : FRAME_MATERIALS[ft].texture
                       )} />
                       <span className={cn(
                         "text-[11px] font-semibold tracking-wide leading-none",
-                        activeFrameType === ft ? "text-white" : "text-charcoal"
+                        currentFrameType === ft ? "text-white" : "text-charcoal"
                       )}>
                         {FRAME_TYPE_LABELS[ft]}
                       </span>
@@ -283,7 +294,7 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
                   ))}
                 </div>
                 <p className="text-xs text-muted/80 leading-relaxed">
-                  {FRAME_TYPE_DESCRIPTIONS[activeFrameType]}
+                  {FRAME_TYPE_DESCRIPTIONS[currentFrameType]}
                 </p>
               </div>
             )}
@@ -301,9 +312,7 @@ export default function WallArtProduct({ product, variants, related }: WallArtPr
 
               <div className="grid grid-cols-2 gap-2">
                 {ALL_SIZES.map((size) => {
-                  const variant = activeVariants.find(
-                    (v) => v.frame_type === activeFrameType && v.size === size
-                  );
+                  const variant = activeVariants.find((v) => v.size === size);
                   const available = !!variant;
                   const dim = FRAME_SIZE_CM[size];
                   const isSelected = activeSize === size;

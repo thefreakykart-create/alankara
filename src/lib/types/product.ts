@@ -26,6 +26,19 @@ export interface ProductVariant {
   created_at: string;
 }
 
+export interface ProductGroup {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface GroupProduct {
+  id: string;
+  name: string;
+  slug: string;
+  frame_type: FrameType;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -50,7 +63,9 @@ export interface Product {
   metadata: Record<string, string> | null;
   created_at: string;
   updated_at: string;
-  // wall_art products have variants
+  // wall_art products
+  frame_type?: FrameType | null;
+  group_id?: string | null;
   variants?: ProductVariant[];
 }
 

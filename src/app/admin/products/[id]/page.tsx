@@ -9,13 +9,17 @@ import {
   updateVariantImagesAction,
 } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
+import { createAdminServiceClient } from "@/lib/admin";
 import { formatINR } from "@/lib/utils";
 import DeleteProductButton from "@/components/admin/delete-product-button";
+import ProductGroupPanel from "@/components/admin/product-group-panel";
 import {
   FRAME_SIZE_LABELS,
   FRAME_TYPE_LABELS,
   type FrameSize,
   type FrameType,
+  type GroupProduct,
+  type ProductGroup,
 } from "@/lib/types/product";
 
 interface Props {
@@ -37,6 +41,8 @@ export default async function AdminProductDetailPage({ params }: Props) {
   const { id } = await params;
   const { supabase } = await requireAdmin();
 
+  const admin = createAdminServiceClient();
+
   const [{ data: product }, { data: categories }, { data: variants }] =
     await Promise.all([
       supabase
@@ -57,6 +63,17 @@ export default async function AdminProductDetailPage({ params }: Props) {
     ]);
 
   if (!product) notFound();
+
+  // Fetch group data
+  const [{ data: allGroups }, { data: groupMembers }] = await Promise.all([
+    admin.from("product_groups").select("id, name, created_at").order("name"),
+    product.group_id
+      ? admin
+          .from("products")
+          .select("id, name, slug, frame_type")
+          .eq("group_id", product.group_id)
+      : Promise.resolve({ data: [] as GroupProduct[] }),
+  ]);
 
   const catRel = product.category as
     | { name?: string }[]
@@ -296,6 +313,27 @@ export default async function AdminProductDetailPage({ params }: Props) {
         </div>
         <DeleteProductButton productId={product.id} />
       </div>
+
+      {/* Product Group (wall art only) */}
+      {product.product_type === "wall_art" && (
+        <div className="bg-white border border-zinc-200 rounded-lg p-5">
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-zinc-900">Product Group</h2>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              Group this product with its canvas / acrylic / wooden variants so customers can switch frame types on the storefront.
+            </p>
+          </div>
+          <ProductGroupPanel
+            productId={product.id}
+            currentGroupId={product.group_id ?? null}
+            currentGroupName={
+              allGroups?.find((g: ProductGroup) => g.id === product.group_id)?.name ?? null
+            }
+            groupMembers={(groupMembers as GroupProduct[]) ?? []}
+            allGroups={(allGroups as ProductGroup[]) ?? []}
+          />
+        </div>
+      )}
 
       {/* Variants table (wall art only) */}
       {product.product_type === "wall_art" && (

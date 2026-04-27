@@ -6,11 +6,11 @@ import type { Metadata } from "next";
 import {
   updateProductAction,
   updateProductVariantAction,
-  deleteProductAction,
   updateVariantImagesAction,
 } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
 import { formatINR } from "@/lib/utils";
+import DeleteProductButton from "@/components/admin/delete-product-button";
 import {
   FRAME_SIZE_LABELS,
   FRAME_TYPE_LABELS,
@@ -96,6 +96,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
       <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
         {/* Edit form */}
         <form
+          id="edit-product-form"
           action={updateProductAction}
           className="bg-white border border-zinc-200 rounded-lg p-5 space-y-4"
         >
@@ -238,20 +239,6 @@ export default async function AdminProductDetailPage({ params }: Props) {
             >
               Save Product
             </button>
-            <form
-              action={deleteProductAction}
-              onSubmit={(e) => {
-                if (!confirm("Delete this product? This cannot be undone.")) e.preventDefault();
-              }}
-            >
-              <input type="hidden" name="productId" value={product.id} />
-              <button
-                type="submit"
-                className="px-5 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-md transition-colors"
-              >
-                Delete Product
-              </button>
-            </form>
           </div>
         </form>
 
@@ -299,6 +286,15 @@ export default async function AdminProductDetailPage({ params }: Props) {
             )}
           </div>
         </aside>
+      </div>
+
+      {/* Danger zone */}
+      <div className="flex items-center gap-4 px-5 py-4 bg-white border border-red-100 rounded-lg">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-zinc-900">Delete Product</p>
+          <p className="text-xs text-zinc-500 mt-0.5">Permanently removes this product and all its variants. This cannot be undone.</p>
+        </div>
+        <DeleteProductButton productId={product.id} />
       </div>
 
       {/* Variants table (wall art only) */}

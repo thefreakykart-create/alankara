@@ -12,6 +12,7 @@ import {
   FRAME_TYPE_DESCRIPTIONS,
 } from "@/lib/types/product";
 import { cn } from "@/lib/utils";
+import { publishWallArtAction } from "@/app/admin/actions";
 
 const ALL_FRAME_TYPES: FrameType[] = ["canvas", "acrylic", "wooden"];
 const ALL_SIZES: FrameSize[] = ["8x12", "12x18", "18x24", "24x36"];
@@ -186,67 +187,51 @@ export default function PublishWallArtPage() {
       const slug = generateSlug(designName);
       const selectedCategory = categories.find((c) => c.id === categoryId);
 
-      const { data: product, error: productError } = await supabase
-        .from("products")
-        .insert({
-          name: designName,
-          slug,
-          description: generateDescription(
-            designName,
-            selectedCategory?.slug ?? "",
-            enabledFrames[0]
-          ),
-          product_type: "wall_art",
-          price: 0,
-          category_id: categoryId,
-          images: [],
-          stock_quantity: 0,
-          is_active: true,
-          is_featured: isFeatured,
-        })
-        .select()
-        .single();
-
-      if (productError) throw productError;
-
+      // Upload images first using the browser client (storage only, no DB writes)
+      const frameImageUrls: Record<FrameType, string[]> = {} as Record<FrameType, string[]>;
       for (const ft of enabledFrames) {
-        const frameConfig = frames[ft];
         const uploadedUrls: string[] = [];
-
-        for (const file of frameConfig.images) {
+        for (const file of frames[ft].images) {
           const ext = file.name.split(".").pop();
-          const path = `products/${product.id}/${ft}/${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2)}.${ext}`;
+          const path = `products/tmp/${ft}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
           const { error: uploadError } = await supabase.storage
             .from("product-images")
             .upload(path, file, { cacheControl: "31536000" });
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage
-              .from("product-images")
-              .getPublicUrl(path);
-            uploadedUrls.push(urlData.publicUrl);
-          }
+          if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`);
+          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+          uploadedUrls.push(urlData.publicUrl);
         }
+        frameImageUrls[ft] = uploadedUrls;
+      }
 
-        const enabledSizes = ALL_SIZES.filter((s) => frameConfig.variants[s].enabled);
-        for (const size of enabledSizes) {
-          const v = frameConfig.variants[size];
-          await supabase.from("product_variants").insert({
-            product_id: product.id,
+      // Build variant payloads
+      const variants = enabledFrames.flatMap((ft) => {
+        const enabledSizes = ALL_SIZES.filter((s) => frames[ft].variants[s].enabled);
+        return enabledSizes.map((size) => {
+          const v = frames[ft].variants[size];
+          return {
             frame_type: ft,
             size,
-            price: Math.round(parseFloat(v.price) * 100),
+            price: Math.round(parseFloat(v.price) * 100) || 0,
             compare_at_price: v.compareAtPrice
               ? Math.round(parseFloat(v.compareAtPrice) * 100)
               : null,
             sku: v.sku || null,
             stock_quantity: parseInt(v.stock) || 0,
-            images: uploadedUrls,
-            is_active: true,
-          });
-        }
-      }
+            images: frameImageUrls[ft],
+          };
+        });
+      });
+
+      // Use server action (admin service role) to create product + variants
+      await publishWallArtAction({
+        name: designName,
+        slug,
+        description: generateDescription(designName, selectedCategory?.slug ?? "", enabledFrames[0]),
+        category_id: categoryId,
+        is_featured: isFeatured,
+        variants,
+      });
 
       setPublished(true);
       setTimeout(() => router.push(`/products/${slug}`), 2000);

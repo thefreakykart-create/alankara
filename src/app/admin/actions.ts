@@ -377,3 +377,72 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
   revalidatePath("/");
 }
+
+// ─── Publish wall art ──────────────────────────────────────────────────────────
+
+export interface VariantPayload {
+  frame_type: string;
+  size: string;
+  price: number;
+  compare_at_price: number | null;
+  sku: string | null;
+  stock_quantity: number;
+  images: string[];
+}
+
+export interface PublishWallArtPayload {
+  name: string;
+  slug: string;
+  description: string;
+  category_id: string;
+  is_featured: boolean;
+  variants: VariantPayload[];
+}
+
+export async function publishWallArtAction(payload: PublishWallArtPayload): Promise<string> {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+
+  const { data: product, error: productError } = await admin
+    .from("products")
+    .insert({
+      name: payload.name,
+      slug: payload.slug,
+      description: payload.description,
+      product_type: "wall_art",
+      price: 0,
+      category_id: payload.category_id,
+      images: [],
+      stock_quantity: 0,
+      is_active: true,
+      is_featured: payload.is_featured,
+    })
+    .select("id")
+    .single();
+
+  if (productError) throw new Error(productError.message);
+
+  const variantRows = payload.variants.map((v) => ({
+    product_id: product.id,
+    frame_type: v.frame_type,
+    size: v.size,
+    price: v.price,
+    compare_at_price: v.compare_at_price,
+    sku: v.sku,
+    stock_quantity: v.stock_quantity,
+    images: v.images,
+    is_active: true,
+  }));
+
+  const { error: variantError } = await admin
+    .from("product_variants")
+    .insert(variantRows);
+
+  if (variantError) throw new Error(variantError.message);
+
+  revalidatePath("/admin/products");
+  revalidatePath("/products");
+  revalidatePath("/");
+
+  return product.id;
+}

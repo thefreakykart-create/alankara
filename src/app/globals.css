@@ -131,6 +131,9 @@ body {
   color: var(--warm-white);
 }
 
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

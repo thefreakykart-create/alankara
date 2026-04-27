@@ -39,7 +39,13 @@ export default function BrandStory() {
         {STATS.map((s, i) => (
           <div
             key={s.label}
-            className={`px-8 lg:px-12 py-10 lg:py-12 ${i < STATS.length - 1 ? "border-r border-charcoal/8" : ""}`}
+            className={[
+              "px-6 sm:px-8 lg:px-12 py-8 lg:py-12",
+              // right border: on mobile cols 0 only (not col 1), on desktop cols 0-2
+              i % 2 === 0 ? "border-r border-charcoal/8" : "",
+              // top border: bottom row on mobile (i >= 2), never on desktop
+              i >= 2 ? "border-t border-charcoal/8 lg:border-t-0" : "",
+            ].join(" ")}
           >
             <p className="font-serif text-4xl lg:text-5xl text-charcoal tracking-tight">{s.value}</p>
             <p className="text-xs tracking-[0.2em] uppercase text-muted mt-2">{s.label}</p>

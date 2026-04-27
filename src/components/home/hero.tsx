@@ -113,7 +113,7 @@ export default function Hero() {
   return (
     <section
       ref={sectionRef}
-      className="relative h-screen flex items-center justify-center overflow-hidden"
+      className="relative h-[100dvh] flex items-center justify-center overflow-hidden"
     >
       {/* Background Image with parallax */}
       <div

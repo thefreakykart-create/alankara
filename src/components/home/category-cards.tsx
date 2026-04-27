@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useState } from "react";
 import Link from "next/link";
-
-gsap.registerPlugin(ScrollTrigger);
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface CategoryData {
   name: string;
@@ -14,162 +13,96 @@ interface CategoryData {
   description: string | null;
 }
 
-// Fallback images for categories without custom images
-const CATEGORY_IMAGES: Record<string, string> = {
-  "living-room":
-    "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=800&auto=format&fit=crop",
-  bedroom:
-    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=800&auto=format&fit=crop",
-  "kitchen-dining":
-    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=800&auto=format&fit=crop",
-  lighting:
-    "https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?q=80&w=800&auto=format&fit=crop",
+const FALLBACK: Record<string, string> = {
+  "living-room": "https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=1200&auto=format&fit=crop",
+  "bedroom": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=1200&auto=format&fit=crop",
+  "kitchen-dining": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=1200&auto=format&fit=crop",
+  "lighting": "https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?q=80&w=1200&auto=format&fit=crop",
 };
 
 export default function CategoryCards({ categories }: { categories: CategoryData[] }) {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const cardsRef = useRef<(HTMLAnchorElement | null)[]>([]);
-  const headingRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Heading reveal
-      gsap.from(headingRef.current, {
-        opacity: 0,
-        y: 40,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 75%",
-        },
-      });
-
-      // Cards staggered parallax
-      cardsRef.current.forEach((card, i) => {
-        if (!card) return;
-
-        // Parallax offset — alternate cards have different speeds
-        const yOffset = i % 2 === 0 ? -60 : -30;
-
-        gsap.from(card, {
-          opacity: 0,
-          y: 80,
-          duration: 0.8,
-          delay: i * 0.15,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: card,
-            start: "top 85%",
-          },
-        });
-
-        gsap.to(card, {
-          y: yOffset,
-          ease: "none",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 1,
-          },
-        });
-      });
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, []);
-
-  // Mouse tilt handler
-  const handleMouseMove = (
-    e: React.MouseEvent<HTMLAnchorElement>,
-    index: number
-  ) => {
-    const card = cardsRef.current[index];
-    if (!card) return;
-
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -8;
-    const rotateY = ((x - centerX) / centerX) * 8;
-
-    gsap.to(card, {
-      rotateX,
-      rotateY,
-      duration: 0.3,
-      ease: "power2.out",
-      transformPerspective: 1000,
-    });
-  };
-
-  const handleMouseLeave = (index: number) => {
-    const card = cardsRef.current[index];
-    if (!card) return;
-
-    gsap.to(card, {
-      rotateX: 0,
-      rotateY: 0,
-      duration: 0.5,
-      ease: "power2.out",
-    });
-  };
+  const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <section ref={sectionRef} className="py-24 lg:py-32 bg-cream">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div ref={headingRef} className="text-center mb-16">
-          <span className="text-xs tracking-[0.3em] uppercase text-terracotta">
-            Explore
-          </span>
-          <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-charcoal mt-3 tracking-[0.02em]">
-            Shop by Room
-          </h2>
-        </div>
+    <section className="bg-charcoal">
+      <div className="flex items-center justify-between px-6 lg:px-12 pt-12 pb-6">
+        <p className="text-[10px] tracking-[0.3em] uppercase text-warm-white/30">Shop by Room</p>
+        <Link href="/products" className="text-[10px] tracking-[0.25em] uppercase text-warm-white/30 hover:text-warm-white/70 transition-colors">
+          All Rooms →
+        </Link>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {categories.map((category, i) => (
-            <Link
-              key={category.slug}
-              ref={(el) => { cardsRef.current[i] = el; }}
-              href={`/products?category=${category.slug}`}
-              data-cursor="Explore"
-              className="group relative overflow-hidden aspect-[3/4] will-change-transform"
-              style={{ transformStyle: "preserve-3d" }}
-              onMouseMove={(e) => handleMouseMove(e, i)}
-              onMouseLeave={() => handleMouseLeave(i)}
+      {/* Desktop: accordion panels */}
+      <div className="hidden lg:flex h-[80vh]">
+        {categories.map((cat, i) => {
+          const img = cat.image_url || FALLBACK[cat.slug] || "";
+          const isHovered = hovered === i;
+          const anyHovered = hovered !== null;
+
+          return (
+            <motion.div
+              key={cat.slug}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              animate={{ flex: isHovered ? 2.8 : anyHovered ? 0.65 : 1 }}
+              transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+              className="relative overflow-hidden"
             >
-              {/* Image */}
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                style={{ backgroundImage: `url('${category.image_url || CATEGORY_IMAGES[category.slug] || ""}')` }}
-              />
-
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-dark/20 to-transparent" />
-
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <h3 className="font-serif text-2xl text-warm-white tracking-wider">
-                  {category.name}
-                </h3>
-                <p className="text-warm-white/60 text-sm mt-1">
-                  {category.description}
-                </p>
-
-                {/* Animated underline */}
-                <div className="mt-4 flex items-center gap-2">
-                  <div className="h-[1px] w-8 bg-terracotta-light group-hover:w-16 transition-all duration-500" />
-                  <span className="text-terracotta-light text-xs tracking-[0.2em] uppercase">
-                    Shop Now
-                  </span>
+              <Link href={`/products?category=${cat.slug}`} className="block h-full">
+                {img && (
+                  <Image
+                    src={img}
+                    alt={cat.name}
+                    fill
+                    sizes="25vw"
+                    className={cn("object-cover transition-transform duration-700", isHovered ? "scale-105" : "scale-100")}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                <span className="absolute top-6 left-5 font-mono text-5xl text-white/8 leading-none select-none">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <motion.div animate={{ y: isHovered ? -6 : 0 }} transition={{ duration: 0.35 }}>
+                    <h3 className="font-serif text-2xl lg:text-3xl text-white tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
+                      {cat.name}
+                    </h3>
+                    <motion.div
+                      animate={{ height: isHovered ? "auto" : 0, opacity: isHovered ? 1 : 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      {cat.description && (
+                        <p className="text-white/55 text-sm mt-2 leading-relaxed">{cat.description}</p>
+                      )}
+                      <div className="flex items-center gap-2.5 mt-4">
+                        <div className="h-px w-6 bg-terracotta" />
+                        <span className="text-terracotta text-[10px] tracking-[0.25em] uppercase">Explore</span>
+                      </div>
+                    </motion.div>
+                  </motion.div>
                 </div>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Mobile: 2×2 */}
+      <div className="lg:hidden grid grid-cols-2">
+        {categories.map((cat, i) => {
+          const img = cat.image_url || FALLBACK[cat.slug] || "";
+          return (
+            <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="relative aspect-square overflow-hidden group">
+              {img && <Image src={img} alt={cat.name} fill sizes="50vw" className="object-cover transition-transform duration-500 group-active:scale-105" />}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 p-4">
+                <p className="text-[9px] text-white/30 font-mono mb-0.5">{String(i + 1).padStart(2, "0")}</p>
+                <h3 className="font-serif text-lg text-white">{cat.name}</h3>
               </div>
             </Link>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </section>
   );

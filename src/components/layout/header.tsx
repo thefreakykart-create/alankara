@@ -2,188 +2,264 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, Menu, X, Search, User } from "lucide-react";
+import { ShoppingBag, X, Search, User } from "lucide-react";
 import { useCartStore } from "@/stores/cart-store";
 import { useCartDrawerStore } from "@/stores/cart-drawer-store";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+const NAV_LINKS = [
+  { href: "/products", label: "Shop" },
+  { href: "/products?category=living-room", label: "Living Room" },
+  { href: "/products?category=bedroom", label: "Bedroom" },
+  { href: "/products?category=kitchen-dining", label: "Kitchen" },
+  { href: "/products?category=lighting", label: "Lighting" },
+  { href: "/planner", label: "Wall Planner" },
+];
+
 export default function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const itemCount = useCartStore((s) => s.getItemCount());
   const openCart = useCartDrawerStore((s) => s.open);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const navLinks = [
-    { href: "/products", label: "Shop" },
-    { href: "/products?category=living-room", label: "Living Room" },
-    { href: "/products?category=bedroom", label: "Bedroom" },
-    { href: "/products?category=kitchen-dining", label: "Kitchen" },
-    { href: "/products?category=lighting", label: "Lighting" },
-    { href: "/planner", label: "Wall Planner ✦" },
-  ];
+  // Lock body scroll when menu open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [menuOpen]);
+
+  const iconCls = cn(
+    "transition-colors duration-300",
+    scrolled ? "text-warm-white/80 hover:text-warm-white" : "text-charcoal/70 hover:text-charcoal"
+  );
 
   return (
     <>
-      <header
-        className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-          isScrolled
-            ? "bg-cream/95 backdrop-blur-md shadow-sm"
-            : "bg-transparent"
-        )}
-      >
-        {/* Top bar */}
-        <div
-          className={cn(
-            "overflow-hidden transition-all duration-500 text-center text-xs tracking-[0.2em] uppercase",
-            isScrolled
-              ? "h-0 opacity-0"
-              : "h-8 opacity-100 bg-charcoal text-warm-white flex items-center justify-center"
-          )}
-        >
-          Free Shipping on Orders Above &#8377;999
+      <header className="fixed top-0 left-0 right-0 z-50">
+
+        {/* Announcement bar */}
+        <div className={cn(
+          "text-center text-[10px] tracking-[0.22em] uppercase font-medium transition-all duration-500 overflow-hidden",
+          scrolled
+            ? "h-0 opacity-0"
+            : "h-8 bg-charcoal text-warm-white/70 flex items-center justify-center"
+        )}>
+          Free Shipping on Orders Above ₹999
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-20">
+        {/* Main nav bar */}
+        <div className={cn(
+          "transition-all duration-500",
+          scrolled
+            ? "bg-charcoal/95 backdrop-blur-md h-14"
+            : "bg-warm-white/90 backdrop-blur-sm h-16 lg:h-20 border-b border-charcoal/6"
+        )}>
+          <div className="max-w-7xl mx-auto px-5 lg:px-8 h-full flex items-center justify-between gap-6">
+
+            {/* Left nav — desktop */}
+            <nav className="hidden lg:flex items-center gap-7 flex-1">
+              {NAV_LINKS.slice(0, 3).map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "relative text-[11px] tracking-[0.14em] uppercase font-medium transition-colors duration-300 py-1 group",
+                    scrolled ? "text-warm-white/70 hover:text-warm-white" : "text-charcoal/60 hover:text-charcoal"
+                  )}
+                >
+                  {link.label}
+                  <span className={cn(
+                    "absolute bottom-0 left-1/2 -translate-x-1/2 h-[1.5px] w-0 group-hover:w-full transition-all duration-300 rounded-full",
+                    scrolled ? "bg-warm-white/60" : "bg-terracotta"
+                  )} />
+                </Link>
+              ))}
+            </nav>
+
             {/* Mobile menu button */}
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 -ml-2"
-              aria-label="Toggle menu"
+              onClick={() => setMenuOpen(true)}
+              className={cn("lg:hidden flex flex-col gap-[5px] p-1", iconCls)}
+              aria-label="Open menu"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
+              <span className={cn("block h-px w-5 transition-colors", scrolled ? "bg-warm-white/80" : "bg-charcoal")} />
+              <span className={cn("block h-px w-3.5 transition-colors", scrolled ? "bg-warm-white/80" : "bg-charcoal")} />
             </button>
 
-            {/* Nav Links - Desktop */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {navLinks.slice(0, 3).map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm tracking-[0.1em] uppercase text-charcoal hover:text-terracotta transition-colors duration-300 relative group"
-                >
-                  {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-terracotta transition-all duration-300 group-hover:w-full" />
-                </Link>
-              ))}
-            </nav>
-
-            {/* Logo */}
-            <Link
-              href="/"
-              className="absolute left-1/2 -translate-x-1/2 lg:relative lg:left-auto lg:translate-x-0"
-            >
-              <h1 className="font-serif text-2xl lg:text-3xl tracking-[0.15em] uppercase text-charcoal">
-                Alankara
-              </h1>
+            {/* Logo — center */}
+            <Link href="/" className="flex flex-col items-center gap-0.5 group flex-none">
+              <div className={cn(
+                "flex items-center gap-2 transition-colors duration-300",
+                scrolled ? "text-warm-white" : "text-charcoal"
+              )}>
+                <span className={cn(
+                  "text-[10px] transition-opacity duration-300",
+                  scrolled ? "opacity-40" : "opacity-30"
+                )}>✦</span>
+                <span className={cn(
+                  "font-serif tracking-[0.22em] uppercase transition-all duration-300",
+                  scrolled ? "text-xl" : "text-2xl lg:text-3xl"
+                )}>
+                  Alankara
+                </span>
+                <span className={cn(
+                  "text-[10px] transition-opacity duration-300",
+                  scrolled ? "opacity-40" : "opacity-30"
+                )}>✦</span>
+              </div>
+              {!scrolled && (
+                <span className="text-[8px] tracking-[0.35em] uppercase text-charcoal/30 font-medium hidden lg:block">
+                  Home · Art · Decor
+                </span>
+              )}
             </Link>
 
-            {/* Nav Links - Desktop Right */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {navLinks.slice(3).map((link) => (
+            {/* Right nav — desktop */}
+            <nav className="hidden lg:flex items-center gap-7 flex-1 justify-end">
+              {NAV_LINKS.slice(3).map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm tracking-[0.1em] uppercase text-charcoal hover:text-terracotta transition-colors duration-300 relative group"
+                  className={cn(
+                    "relative text-[11px] tracking-[0.14em] uppercase font-medium transition-colors duration-300 py-1 group",
+                    scrolled ? "text-warm-white/70 hover:text-warm-white" : "text-charcoal/60 hover:text-charcoal",
+                    link.label === "Wall Planner" && "flex items-center gap-1"
+                  )}
                 >
                   {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-terracotta transition-all duration-300 group-hover:w-full" />
+                  {link.label === "Wall Planner" && (
+                    <span className={cn("text-[9px]", scrolled ? "text-warm-white/40" : "text-terracotta/60")}>✦</span>
+                  )}
+                  <span className={cn(
+                    "absolute bottom-0 left-1/2 -translate-x-1/2 h-[1.5px] w-0 group-hover:w-full transition-all duration-300 rounded-full",
+                    scrolled ? "bg-warm-white/60" : "bg-terracotta"
+                  )} />
                 </Link>
               ))}
             </nav>
 
-            {/* Right icons */}
-            <div className="flex items-center gap-4">
-              <button
-                className="p-2 hover:text-terracotta transition-colors"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5" />
+            {/* Icons */}
+            <div className="flex items-center gap-1">
+              <button className={cn("p-2 rounded-full transition-colors", iconCls)} aria-label="Search">
+                <Search className="w-4 h-4" />
               </button>
-              <Link
-                href="/account"
-                className="p-2 hover:text-terracotta transition-colors hidden sm:block"
-                aria-label="Account"
-              >
-                <User className="w-5 h-5" />
+              <Link href="/account" className={cn("p-2 rounded-full transition-colors hidden sm:flex", iconCls)} aria-label="Account">
+                <User className="w-4 h-4" />
               </Link>
               <button
                 onClick={openCart}
-                className="p-2 hover:text-terracotta transition-colors relative"
+                className={cn("p-2 rounded-full transition-colors relative", iconCls)}
                 aria-label="Cart"
               >
-                <ShoppingBag className="w-5 h-5" />
-                {itemCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-terracotta text-warm-white text-[10px] rounded-full flex items-center justify-center font-medium"
-                  >
-                    {itemCount}
-                  </motion.span>
-                )}
+                <ShoppingBag className="w-4 h-4" />
+                <AnimatePresence>
+                  {itemCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-terracotta text-white text-[9px] rounded-full flex items-center justify-center font-bold"
+                    >
+                      {itemCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
             </div>
+
           </div>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* ── Full-screen mobile menu ── */}
       <AnimatePresence>
-        {isMobileMenuOpen && (
+        {menuOpen && (
           <motion.div
-            initial={{ opacity: 0, x: "-100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "-100%" }}
-            transition={{ type: "tween", duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-cream lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[60] bg-charcoal flex flex-col lg:hidden"
           >
-            <div className="pt-28 px-8">
-              <nav className="flex flex-col gap-6">
-                {navLinks.map((link, i) => (
-                  <motion.div
-                    key={link.href}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    <Link
-                      href={link.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-2xl font-serif tracking-[0.1em] text-charcoal hover:text-terracotta transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                ))}
+            {/* Close button */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-warm-white/10">
+              <span className="font-serif text-xl tracking-[0.2em] text-warm-white/80">
+                ✦ Alankara
+              </span>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="p-2 text-warm-white/60 hover:text-warm-white transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Links */}
+            <nav className="flex-1 flex flex-col justify-center px-8 gap-1">
+              {NAV_LINKS.map((link, i) => (
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navLinks.length * 0.1 }}
+                  key={link.href}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ delay: i * 0.06, duration: 0.3 }}
                 >
                   <Link
-                    href="/account"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-2xl font-serif tracking-[0.1em] text-charcoal hover:text-terracotta transition-colors"
+                    href={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="group flex items-baseline gap-3 py-3 border-b border-warm-white/8"
                   >
-                    Account
+                    <span className="text-[10px] text-warm-white/20 w-4 font-mono">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="font-serif text-3xl text-warm-white/80 group-hover:text-warm-white transition-colors duration-200 tracking-wide">
+                      {link.label}
+                    </span>
                   </Link>
                 </motion.div>
-              </nav>
+              ))}
+
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ delay: NAV_LINKS.length * 0.06 }}
+              >
+                <Link
+                  href="/account"
+                  onClick={() => setMenuOpen(false)}
+                  className="group flex items-baseline gap-3 py-3 border-b border-warm-white/8"
+                >
+                  <span className="text-[10px] text-warm-white/20 w-4 font-mono">
+                    {String(NAV_LINKS.length + 1).padStart(2, "0")}
+                  </span>
+                  <span className="font-serif text-3xl text-warm-white/80 group-hover:text-warm-white transition-colors duration-200 tracking-wide">
+                    Account
+                  </span>
+                </Link>
+              </motion.div>
+            </nav>
+
+            {/* Bottom row */}
+            <div className="px-8 pb-10 pt-4 flex items-center justify-between">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-warm-white/25">
+                Free shipping above ₹999
+              </p>
+              <button
+                onClick={() => { setMenuOpen(false); openCart(); }}
+                className="flex items-center gap-2 text-xs tracking-widest uppercase text-warm-white/50 hover:text-warm-white transition-colors"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                {itemCount > 0 ? `Cart (${itemCount})` : "Cart"}
+              </button>
             </div>
           </motion.div>
         )}

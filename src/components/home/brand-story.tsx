@@ -1,155 +1,68 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Link from "next/link";
 
-gsap.registerPlugin(ScrollTrigger);
-
-const STORY_SECTIONS = [
-  {
-    title: "Rooted in Tradition",
-    description:
-      "Every piece in our collection is born from centuries-old Indian craft techniques passed down through generations of artisan families.",
-    image:
-      "https://images.unsplash.com/photo-1615529182904-14819c35db37?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    title: "Designed for Today",
-    description:
-      "We reimagine traditional forms with contemporary sensibilities, creating decor that feels both timeless and refreshingly modern.",
-    image:
-      "https://images.unsplash.com/photo-1600585152220-90363fe7e115?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    title: "Made with Purpose",
-    description:
-      "Each purchase directly supports artisan communities across India, preserving craft traditions while building sustainable livelihoods.",
-    image:
-      "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=800&auto=format&fit=crop",
-  },
+const STATS = [
+  { value: "500+", label: "Designs" },
+  { value: "25+", label: "Artisan Families" },
+  { value: "10k+", label: "Happy Homes" },
+  { value: "3", label: "Frame Materials" },
 ];
 
 export default function BrandStory() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const headingRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Heading animation
-      gsap.from(headingRef.current, {
-        opacity: 0,
-        y: 40,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: headingRef.current,
-          start: "top 80%",
-        },
-      });
-
-      // Animate each story block
-      const blocks = sectionRef.current?.querySelectorAll(".story-block");
-      blocks?.forEach((block, i) => {
-        const image = block.querySelector(".story-image");
-        const text = block.querySelector(".story-text");
-
-        gsap.from(image, {
-          opacity: 0,
-          x: i % 2 === 0 ? -80 : 80,
-          duration: 1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: block,
-            start: "top 70%",
-          },
-        });
-
-        gsap.from(text, {
-          opacity: 0,
-          x: i % 2 === 0 ? 80 : -80,
-          duration: 1,
-          delay: 0.2,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: block,
-            start: "top 70%",
-          },
-        });
-
-        // Parallax on images
-        gsap.to(image, {
-          y: -40,
-          ease: "none",
-          scrollTrigger: {
-            trigger: block,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 1,
-          },
-        });
-      });
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <section id="story" ref={sectionRef} className="py-24 lg:py-32 bg-warm-white">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div ref={headingRef} className="text-center mb-20">
-          <span className="text-xs tracking-[0.3em] uppercase text-terracotta">
-            Our Story
-          </span>
-          <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-charcoal mt-3 tracking-[0.02em]">
-            Craft Meets Contemporary
-          </h2>
-          <p className="mt-4 text-muted text-lg max-w-2xl mx-auto">
-            Alankara is a bridge between India&apos;s rich artisan heritage and the
-            modern home.
-          </p>
-        </div>
+    <section id="story" className="bg-cream">
 
-        <div className="space-y-24 lg:space-y-32">
-          {STORY_SECTIONS.map((section, i) => (
-            <div
-              key={i}
-              className={`story-block grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center ${
-                i % 2 !== 0 ? "lg:direction-rtl" : ""
-              }`}
-            >
-              {/* Image */}
-              <div
-                className={`story-image overflow-hidden ${
-                  i % 2 !== 0 ? "lg:order-2" : ""
-                }`}
-              >
-                <div
-                  className="aspect-[4/5] bg-cover bg-center"
-                  style={{ backgroundImage: `url('${section.image}')` }}
-                />
-              </div>
+      {/* Manifesto */}
+      <div className="px-6 sm:px-10 lg:px-20 pt-20 lg:pt-28 pb-16 lg:pb-20 max-w-6xl mx-auto">
+        <p className="text-[10px] tracking-[0.3em] uppercase text-terracotta mb-6">Our Belief</p>
+        <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl text-charcoal leading-[1.08] tracking-tight">
+          Your walls deserve<br />
+          <em className="not-italic text-terracotta">art that means something.</em>
+        </h2>
+        <p className="mt-8 text-base lg:text-lg text-muted leading-relaxed max-w-2xl">
+          Alankara bridges India&apos;s centuries-old craft traditions with contemporary living.
+          Every print is made with archival inks, every frame sourced responsibly — art you can
+          pass down, not throw away.
+        </p>
+        <Link
+          href="/products"
+          className="inline-flex items-center gap-3 mt-10 text-sm tracking-[0.15em] uppercase text-charcoal group"
+        >
+          <span className="w-8 h-px bg-charcoal group-hover:w-12 transition-all duration-300" />
+          Browse Collection
+        </Link>
+      </div>
 
-              {/* Text */}
-              <div
-                className={`story-text ${
-                  i % 2 !== 0 ? "lg:order-1" : ""
-                }`}
-              >
-                <span className="text-7xl lg:text-8xl font-serif text-border leading-none">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <h3 className="font-serif text-3xl lg:text-4xl text-charcoal mt-4 tracking-[0.02em]">
-                  {section.title}
-                </h3>
-                <p className="mt-4 text-muted text-base lg:text-lg leading-relaxed max-w-md">
-                  {section.description}
-                </p>
-                <div className="mt-6 h-[1px] w-16 bg-terracotta" />
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Stats strip */}
+      <div className="border-t border-charcoal/8 grid grid-cols-2 lg:grid-cols-4">
+        {STATS.map((s, i) => (
+          <div
+            key={s.label}
+            className={`px-8 lg:px-12 py-10 lg:py-12 ${i < STATS.length - 1 ? "border-r border-charcoal/8" : ""}`}
+          >
+            <p className="font-serif text-4xl lg:text-5xl text-charcoal tracking-tight">{s.value}</p>
+            <p className="text-xs tracking-[0.2em] uppercase text-muted mt-2">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Process strip */}
+      <div className="border-t border-charcoal/8 grid grid-cols-1 sm:grid-cols-3">
+        {[
+          { step: "01", title: "Choose Your Art", desc: "Browse 500+ original designs across devotional, nature, abstract and more." },
+          { step: "02", title: "Pick Your Frame", desc: "Canvas, acrylic or wooden — each material transforms the mood of the piece." },
+          { step: "03", title: "We Print & Ship", desc: "Archival-grade printing, hand-inspected, delivered to your door in 5–7 days." },
+        ].map((p, i) => (
+          <div
+            key={p.step}
+            className={`px-8 lg:px-12 py-10 ${i < 2 ? "sm:border-r border-charcoal/8" : ""} ${i > 0 ? "border-t sm:border-t-0 border-charcoal/8" : ""}`}
+          >
+            <span className="text-[10px] font-mono text-terracotta tracking-[0.2em]">{p.step}</span>
+            <h3 className="font-serif text-xl text-charcoal mt-2 mb-2">{p.title}</h3>
+            <p className="text-sm text-muted leading-relaxed">{p.desc}</p>
+          </div>
+        ))}
       </div>
     </section>
   );

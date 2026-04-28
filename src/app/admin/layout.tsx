@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ExternalLink, Plus, Sparkles } from "lucide-react";
+import { ExternalLink, Plus } from "lucide-react";
 import AdminNav from "@/components/admin/admin-nav";
 import LogoutButton from "@/components/account/logout-button";
 import { requireAdmin } from "@/lib/admin";
@@ -42,18 +42,11 @@ export default async function AdminLayout({
             Quick Actions
           </p>
           <Link
-            href="/admin/products/publish"
-            className="flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
-          >
-            <Sparkles className="w-4 h-4 flex-none" />
-            Publish Wall Art
-          </Link>
-          <Link
             href="/admin/products/new"
             className="flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
           >
             <Plus className="w-4 h-4 flex-none" />
-            New Product
+            Add Product
           </Link>
         </div>
 

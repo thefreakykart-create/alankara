@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin";
 import ProductsTable from "@/components/admin/products-table";
@@ -34,22 +34,13 @@ export default async function AdminProductsPage() {
             Manage catalog, pricing, and inventory.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/admin/products/new"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-zinc-300 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Product
-          </Link>
-          <Link
-            href="/admin/products/publish"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
-          >
-            <Sparkles className="h-4 w-4" />
-            Publish Wall Art
-          </Link>
-        </div>
+        <Link
+          href="/admin/products/new"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Product
+        </Link>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

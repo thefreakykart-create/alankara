@@ -105,6 +105,7 @@ export async function updateProductAction(formData: FormData) {
   }
 
   const metadata = {
+    short_description: parseText(formData.get("shortDescription")),
     material: parseText(formData.get("material")),
     care: parseText(formData.get("care")),
     tags: parseText(formData.get("tags")),

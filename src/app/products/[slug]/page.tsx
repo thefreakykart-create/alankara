@@ -152,6 +152,11 @@ export default async function ProductPage({ params }: PageProps) {
             <h1 className="font-serif text-2xl lg:text-3xl text-charcoal tracking-wide">
               {product.name}
             </h1>
+            {product.metadata?.short_description && (
+              <p className="text-sm text-muted leading-relaxed -mt-2">
+                {product.metadata.short_description}
+              </p>
+            )}
             <div className="flex items-baseline gap-3">
               <span className="text-xl font-medium text-charcoal">
                 {formatINR(product.price)}

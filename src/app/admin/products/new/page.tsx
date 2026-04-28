@@ -22,6 +22,7 @@ export default function NewProductPage() {
   const [isActive, setIsActive] = useState(true);
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
   const [tags, setTags] = useState("");
   const [price, setPrice] = useState("");
   const [compareAtPrice, setCompareAtPrice] = useState("");
@@ -86,6 +87,7 @@ export default function NewProductPage() {
       }
 
       const metadata: Record<string, string> = {};
+      if (shortDescription) metadata.short_description = shortDescription;
       if (material) metadata.material = material;
       if (care) metadata.care = care;
       if (tags) metadata.tags = tags;
@@ -197,12 +199,21 @@ export default function NewProductPage() {
                 <input type="number" value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} className={inputCls} />
               </div>
               <div className="md:col-span-2">
-                <label className={labelCls}>Description</label>
+                <label className={labelCls}>Short Description <span className="font-normal text-zinc-400">— shown below title on product page</span></label>
+                <input
+                  value={shortDescription}
+                  onChange={(e) => setShortDescription(e.target.value)}
+                  placeholder="e.g. Hand-poured soy wax candle with sandalwood fragrance"
+                  className={inputCls}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelCls}>Full Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={5}
-                  placeholder="Describe this product…"
+                  placeholder="Detailed product description…"
                   className="w-full px-3 py-2.5 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none leading-relaxed"
                 />
               </div>

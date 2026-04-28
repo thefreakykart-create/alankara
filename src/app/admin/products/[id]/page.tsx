@@ -152,7 +152,16 @@ export default async function AdminProductDetailPage({ params }: Props) {
                   <input name="sku" defaultValue={product.sku ?? ""} placeholder="ALK-XXXXX" className={`${inputCls} font-mono`} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelCls}>Description</label>
+                  <label className={labelCls}>Short Description <span className="font-normal text-zinc-400">— shown below title on product page</span></label>
+                  <input
+                    name="shortDescription"
+                    defaultValue={(product.metadata?.short_description as string) ?? ""}
+                    placeholder="e.g. Hand-poured soy wax candle with sandalwood fragrance"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className={labelCls}>Full Description</label>
                   <textarea name="description" rows={5} defaultValue={product.description ?? ""} className={textareaCls} />
                 </div>
                 <div className="md:col-span-2">

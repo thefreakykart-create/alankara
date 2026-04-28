@@ -107,6 +107,7 @@ export async function updateProductAction(formData: FormData) {
   const metadata = {
     material: parseText(formData.get("material")),
     care: parseText(formData.get("care")),
+    tags: parseText(formData.get("tags")),
   };
 
   const cleanedMetadata = Object.fromEntries(
@@ -506,6 +507,20 @@ export async function publishWallArtAction(payload: PublishWallArtPayload): Prom
   return product.id;
 }
 
+export async function updateProductImagesAction(
+  productId: string,
+  images: string[]
+) {
+  await requireAdmin();
+  const admin = createAdminServiceClient();
+  const { error } = await admin
+    .from("products")
+    .update({ images })
+    .eq("id", productId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/products/${productId}`);
+}
+
 export interface SingleFrameVariantPayload {
   size: string;
   price: number;
@@ -522,6 +537,7 @@ export interface PublishSingleFramePayload {
   category_id: string;
   frame_type: string;
   is_featured: boolean;
+  product_images: string[];
   variants: SingleFrameVariantPayload[];
 }
 
@@ -541,7 +557,7 @@ export async function publishSingleFrameProductAction(
       frame_type: payload.frame_type,
       price: 0,
       category_id: payload.category_id,
-      images: [],
+      images: payload.product_images,
       stock_quantity: 0,
       is_active: true,
       is_featured: payload.is_featured,

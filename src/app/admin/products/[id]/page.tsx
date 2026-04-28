@@ -284,18 +284,16 @@ export default async function AdminProductDetailPage({ params }: Props) {
             </Card>
           )}
 
-          {/* Wall art: product group */}
-          {isWallArt && (
-            <Card title="Product Group" subtitle="Group canvas / acrylic / wooden variants so customers can switch frame types on the storefront.">
-              <ProductGroupPanel
-                productId={product.id}
-                currentGroupId={product.group_id ?? null}
-                currentGroupName={allGroups?.find((g: ProductGroup) => g.id === product.group_id)?.name ?? null}
-                groupMembers={(groupMembers as GroupProduct[]) ?? []}
-                allGroups={(allGroups as ProductGroup[]) ?? []}
-              />
-            </Card>
-          )}
+          {/* Product group */}
+          <Card title="Product Group" subtitle="Link related products so customers can switch between them on the storefront.">
+            <ProductGroupPanel
+              productId={product.id}
+              currentGroupId={product.group_id ?? null}
+              currentGroupName={allGroups?.find((g: ProductGroup) => g.id === product.group_id)?.name ?? null}
+              groupMembers={(groupMembers as GroupProduct[]) ?? []}
+              allGroups={(allGroups as ProductGroup[]) ?? []}
+            />
+          </Card>
 
         </div>
 

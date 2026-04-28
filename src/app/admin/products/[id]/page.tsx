@@ -12,6 +12,7 @@ import { formatINR } from "@/lib/utils";
 import DeleteProductButton from "@/components/admin/delete-product-button";
 import ProductGroupPanel from "@/components/admin/product-group-panel";
 import EditProductImages from "@/components/admin/edit-product-images";
+import ProductStatusToggle from "@/components/admin/product-status-toggle";
 import {
   FRAME_SIZE_LABELS,
   FRAME_TYPE_LABELS,
@@ -199,18 +200,6 @@ export default async function AdminProductDetailPage({ params }: Props) {
                 </div>
               </div>
 
-              {/* Visibility */}
-              <div className="flex flex-wrap gap-6 pt-2 border-t border-zinc-100">
-                <label className="inline-flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
-                  <input name="isActive" type="checkbox" defaultChecked={product.is_active} className="h-4 w-4 rounded accent-indigo-600" />
-                  Active (visible on site)
-                </label>
-                <label className="inline-flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
-                  <input name="isFeatured" type="checkbox" defaultChecked={product.is_featured} className="h-4 w-4 rounded accent-indigo-600" />
-                  Featured on homepage
-                </label>
-              </div>
-
               <div className="pt-2 border-t border-zinc-100">
                 <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors">
                   Save Product
@@ -304,19 +293,29 @@ export default async function AdminProductDetailPage({ params }: Props) {
         {/* ── RIGHT SIDEBAR ── */}
         <aside className="space-y-5">
 
+          {/* Status toggles + dates */}
+          <ProductStatusToggle
+            productId={product.id}
+            initialActive={product.is_active}
+            initialFeatured={product.is_featured}
+            createdAt={product.created_at}
+            updatedAt={product.updated_at}
+          />
+
           {/* Summary */}
           <div className="bg-white border border-zinc-200 rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Summary</h2>
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Details</h2>
             <dl className="space-y-2.5 text-sm">
               {[
                 { label: "Type", value: isWallArt ? "Wall Art" : "General" },
                 { label: "Category", value: catName || "—" },
-                { label: "Status", value: product.is_active ? "Active" : "Inactive" },
-                { label: "Frame", value: product.frame_type ? FRAME_TYPE_LABELS[product.frame_type as FrameType] : "—" },
-                { label: "Group", value: allGroups?.find((g: ProductGroup) => g.id === product.group_id)?.name ?? "—" },
-                { label: "Variants", value: variants?.length ?? 0 },
-                { label: "Created", value: new Date(product.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) },
-                { label: "Updated", value: new Date(product.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) },
+                { label: "SKU", value: product.sku || "—" },
+                { label: "Stock", value: product.stock_quantity ?? 0 },
+                ...(isWallArt ? [
+                  { label: "Frame", value: product.frame_type ? FRAME_TYPE_LABELS[product.frame_type as FrameType] : "—" },
+                  { label: "Group", value: allGroups?.find((g: ProductGroup) => g.id === product.group_id)?.name ?? "—" },
+                  { label: "Variants", value: variants?.length ?? 0 },
+                ] : []),
               ].map((row) => (
                 <div key={row.label} className="flex justify-between gap-3">
                   <dt className="text-zinc-500">{row.label}</dt>

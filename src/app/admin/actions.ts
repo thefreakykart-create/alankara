@@ -119,14 +119,17 @@ export async function updateProductAction(formData: FormData) {
     .map((url) => url.trim())
     .filter(Boolean);
 
+  const hasActive = formData.has("isActive") || formData.get("isActivePresent") === "1";
+  const hasFeatured = formData.has("isFeatured") || formData.get("isFeaturedPresent") === "1";
+
   const payload = {
     name,
     slug: slugInput || generateSlug(name),
     description: parseText(formData.get("description")),
     category_id: parseText(formData.get("categoryId")),
     sku: parseText(formData.get("sku")),
-    is_active: parseCheckbox(formData.get("isActive")),
-    is_featured: parseCheckbox(formData.get("isFeatured")),
+    ...(hasActive ? { is_active: parseCheckbox(formData.get("isActive")) } : {}),
+    ...(hasFeatured ? { is_featured: parseCheckbox(formData.get("isFeatured")) } : {}),
     weight_grams: parseOptionalNumber(formData.get("weightGrams")),
     metadata:
       Object.keys(cleanedMetadata).length > 0

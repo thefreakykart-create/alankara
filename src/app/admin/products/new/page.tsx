@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/utils";
@@ -17,6 +17,9 @@ export default function NewProductPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
+  const [isActive, setIsActive] = useState(true);
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
@@ -44,6 +47,11 @@ export default function NewProductPage() {
       .then(({ data }) => { if (data) setCategories(data); });
   }, []);
 
+  const handleNameChange = useCallback((value: string) => {
+    setName(value);
+    if (!slugEdited) setSlug(generateSlug(value));
+  }, [slugEdited]);
+
   const uploadFile = async (file: File, path: string) => {
     const supabase = createClient();
     const { error } = await supabase.storage.from("product-images").upload(path, file, { cacheControl: "31536000" });
@@ -61,18 +69,18 @@ export default function NewProductPage() {
     setLoading(true);
     try {
       const ts = Date.now();
-      const slug = generateSlug(name);
+      const finalSlug = slug || generateSlug(name);
 
       const featuredUrl = await uploadFile(
         featuredFile,
-        `products/${slug}/featured-${ts}.${featuredFile.name.split(".").pop()}`
+        `products/${finalSlug}/featured-${ts}.${featuredFile.name.split(".").pop()}`
       );
 
       const galleryUrls: string[] = [];
       for (const file of galleryFiles) {
         const url = await uploadFile(
           file,
-          `products/${slug}/gallery-${ts}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`
+          `products/${finalSlug}/gallery-${ts}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`
         );
         galleryUrls.push(url);
       }
@@ -85,7 +93,7 @@ export default function NewProductPage() {
       const supabase = createClient();
       const { data, error: insertErr } = await supabase.from("products").insert({
         name,
-        slug,
+        slug: finalSlug,
         description: description || null,
         product_type: "general",
         price: Math.round(parseFloat(price) * 100),
@@ -95,7 +103,7 @@ export default function NewProductPage() {
         sku: sku || null,
         stock_quantity: parseInt(stock) || 0,
         is_featured: isFeatured,
-        is_active: true,
+        is_active: isActive,
         weight_grams: weightGrams ? parseInt(weightGrams) : null,
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
       }).select("id").single();
@@ -117,7 +125,9 @@ export default function NewProductPage() {
         </div>
         <div>
           <h2 className="text-xl font-semibold text-zinc-900">Product Created!</h2>
-          <p className="text-sm text-zinc-500 mt-1">&ldquo;{name}&rdquo; is now live.</p>
+          <p className="text-sm text-zinc-500 mt-1">
+            &ldquo;{name}&rdquo; has been saved as {isActive ? "active" : "a draft"}.
+          </p>
         </div>
         <div className="flex gap-3">
           <button
@@ -155,14 +165,25 @@ export default function NewProductPage() {
         <h2 className="text-sm font-semibold text-zinc-900">Product Details</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
+          <div>
             <label className={labelCls}>Product Name *</label>
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => handleNameChange(e.target.value)}
               placeholder="e.g. Handcrafted Brass Diya"
               className={inputCls}
             />
+          </div>
+
+          <div>
+            <label className={labelCls}>URL Slug</label>
+            <input
+              value={slug}
+              onChange={(e) => { setSlug(e.target.value); setSlugEdited(true); }}
+              placeholder="handcrafted-brass-diya"
+              className={`${inputCls} font-mono`}
+            />
+            <p className="text-[10px] text-zinc-400 mt-1">/products/<em>{slug || "auto-generated"}</em></p>
           </div>
 
           <div>
@@ -353,16 +374,51 @@ export default function NewProductPage() {
       </section>
 
       {/* ── Submit ── */}
-      <div className="bg-white border border-zinc-200 rounded-lg px-5 py-4 flex items-center justify-between gap-4">
-        <p className="text-xs text-zinc-400">Product will be live immediately after creation.</p>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-50 whitespace-nowrap"
-        >
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {loading ? "Creating…" : "Create Product"}
-        </button>
+      <div className="bg-white border border-zinc-200 rounded-lg px-5 py-4 space-y-4">
+        {/* Status selector */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-zinc-500">Visibility</span>
+          <div className="flex items-center rounded-md border border-zinc-200 overflow-hidden text-sm">
+            <button
+              type="button"
+              onClick={() => setIsActive(false)}
+              className={cn(
+                "px-4 py-1.5 transition-colors",
+                !isActive
+                  ? "bg-zinc-800 text-white font-medium"
+                  : "text-zinc-500 hover:bg-zinc-50"
+              )}
+            >
+              Draft
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsActive(true)}
+              className={cn(
+                "px-4 py-1.5 transition-colors border-l border-zinc-200",
+                isActive
+                  ? "bg-indigo-600 text-white font-medium"
+                  : "text-zinc-500 hover:bg-zinc-50"
+              )}
+            >
+              Active
+            </button>
+          </div>
+          <p className="text-xs text-zinc-400">
+            {isActive ? "Visible to customers after creation." : "Hidden — you can publish later."}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-end">
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? "Creating…" : "Create Product"}
+          </button>
+        </div>
       </div>
     </div>
   );

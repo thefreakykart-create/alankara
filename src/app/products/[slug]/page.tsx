@@ -73,18 +73,44 @@ export default async function ProductPage({ params }: PageProps) {
     ? (relatedRaw ?? []).filter((p) => p.group_id !== product.group_id).slice(0, 4)
     : (relatedRaw ?? []).slice(0, 4);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images,
+    sku: product.sku,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "INR",
+      price: (product.price / 100).toFixed(2),
+      availability:
+        product.stock_quantity > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+    },
+  };
+
   // ── Wall Art Product (variant-based) ──
   if (product.product_type === "wall_art" && variants && variants.length > 0) {
     return (
-      <WallArtProduct
-        product={product}
-        variants={variants}
-        related={related}
-        groupProducts={groupProducts ?? []}
-      />
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <WallArtProduct
+          product={product}
+          variants={variants}
+          related={related}
+          groupProducts={groupProducts ?? []}
+        />
+      </>
     );
   }
 
   // ── General Product ──
-  return <GeneralProduct product={product} related={related} />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GeneralProduct product={product} related={related} />
+    </>
+  );
 }

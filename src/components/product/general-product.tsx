@@ -21,6 +21,11 @@ import { useToast } from "@/components/ui/toast";
 import { formatINR, getDiscountPercent, cn } from "@/lib/utils";
 import type { Product } from "@/lib/types/product";
 import ProductCard from "@/components/product/product-card";
+import WishlistButton from "@/components/product/wishlist-button";
+import ShareButton from "@/components/product/share-button";
+import PincodeEstimator from "@/components/product/pincode-estimator";
+import StickyAddToCart from "@/components/product/sticky-add-to-cart";
+import ImageZoomModal, { ZoomHint } from "@/components/product/image-zoom-modal";
 
 interface Props {
   product: Product;
@@ -29,10 +34,15 @@ interface Props {
 
 export default function GeneralProduct({ product, related }: Props) {
   const images = product.images ?? [];
+  const meta = product.metadata as Record<string, string> | null;
+  const category = product.category as { name?: string; slug?: string } | null;
+  const tags = meta?.tags ? meta.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
-  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [openAccordion, setOpenAccordion] = useState<string | null>("description");
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null);
 
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartDrawerStore((s) => s.open);
@@ -44,8 +54,9 @@ export default function GeneralProduct({ product, related }: Props) {
   const discount = product.compare_at_price
     ? getDiscountPercent(product.price, product.compare_at_price)
     : 0;
-
-  const meta = product.metadata as Record<string, string> | null;
+  const savings = product.compare_at_price
+    ? product.compare_at_price - product.price
+    : 0;
 
   const handleAdd = () => {
     addItem({
@@ -79,66 +90,96 @@ export default function GeneralProduct({ product, related }: Props) {
     {
       id: "shipping",
       label: "Shipping & Returns",
-      content: "Free shipping on orders above ₹999. Standard delivery in 5–7 business days. Easy 7-day returns on undamaged items.",
+      content: "Free shipping on orders above ₹999. Standard delivery in 5–7 business days. Express delivery in 2–3 business days for ₹199. Easy 7-day returns on undamaged items in original packaging.",
     },
   ];
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row pt-28">
+      {/* Breadcrumb */}
+      <div className="pt-28 px-6 lg:px-10 bg-warm-white">
+        <nav className="flex items-center gap-2 text-xs text-muted tracking-wide py-3">
+          <Link href="/" className="hover:text-charcoal transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/products" className="hover:text-charcoal transition-colors">Shop</Link>
+          {category?.name && (
+            <>
+              <span>/</span>
+              <Link
+                href={`/products?category=${category.slug ?? ""}`}
+                className="hover:text-charcoal transition-colors"
+              >
+                {category.name}
+              </Link>
+            </>
+          )}
+          <span>/</span>
+          <span className="text-charcoal truncate max-w-[160px]">{product.name}</span>
+        </nav>
+      </div>
+
+      <div className="flex flex-col lg:flex-row">
 
         {/* ── LEFT: sticky image panel ── */}
         <div className="relative aspect-[4/5] lg:aspect-auto lg:sticky lg:top-28 lg:h-[calc(100vh-7rem)] lg:w-[58%] lg:self-start flex-none bg-[#F2EDE6] overflow-hidden">
 
           <Link
             href="/products"
-            className="absolute top-4 left-4 z-20 flex items-center gap-1.5 text-xs text-charcoal/70 hover:text-charcoal transition-colors bg-warm-white/75 backdrop-blur-sm px-3 py-2 rounded-full shadow-sm"
+            className="absolute top-4 left-4 z-20 flex items-center gap-1.5 text-xs text-charcoal/70 hover:text-charcoal transition-colors bg-warm-white/75 backdrop-blur-sm px-3 py-2 rounded-full shadow-sm lg:hidden"
           >
             <ArrowLeft className="w-3 h-3" />
             Back
           </Link>
 
-          {product.category && (
-            <div className="absolute top-4 right-4 z-20">
+          {category?.name && (
+            <div className="absolute top-4 right-4 z-20 lg:hidden">
               <span className="text-[10px] tracking-[0.18em] uppercase text-charcoal/60 bg-warm-white/75 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
-                {(product.category as { name?: string }).name}
+                {category.name}
               </span>
             </div>
           )}
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={clampedIndex}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="absolute inset-0"
-            >
-              {images[clampedIndex] ? (
-                <Image
-                  src={images[clampedIndex]}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 58vw"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-charcoal/20 text-sm tracking-widest uppercase">No image</span>
-                </div>
-              )}
-              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-            </motion.div>
-          </AnimatePresence>
+          {/* Main image — clickable for zoom */}
+          <div
+            className="absolute inset-0 cursor-zoom-in group"
+            onClick={() => images[clampedIndex] && setZoomSrc(images[clampedIndex])}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={clampedIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="absolute inset-0"
+              >
+                {images[clampedIndex] ? (
+                  <Image
+                    src={images[clampedIndex]}
+                    alt={product.name}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 58vw"
+                    className="object-cover"
+                    priority
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-charcoal/20 text-sm tracking-widest uppercase">No image</span>
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+              </motion.div>
+            </AnimatePresence>
+            <ZoomHint />
+          </div>
 
+          {/* Thumbnail strip */}
           {images.length > 1 && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-2">
               {images.map((img, i) => (
                 <button
                   key={i}
-                  onClick={() => setActiveImageIndex(i)}
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex(i); }}
                   className={cn(
                     "relative w-10 h-14 lg:w-12 lg:h-16 rounded overflow-hidden border-2 transition-all flex-none",
                     i === clampedIndex
@@ -155,16 +196,28 @@ export default function GeneralProduct({ product, related }: Props) {
 
         {/* ── RIGHT: content panel ── */}
         <div className="lg:w-[42%] flex-none bg-warm-white">
-          <div className="px-6 sm:px-8 lg:px-12 pt-6 lg:pt-8 pb-20 space-y-8 max-w-lg mx-auto lg:max-w-none">
+          <div className="px-6 sm:px-8 lg:px-12 pt-6 lg:pt-8 pb-20 space-y-7 max-w-lg mx-auto lg:max-w-none">
 
-            {/* Name + short description + price */}
-            <div className="space-y-3">
-              <h1 className="font-serif text-3xl lg:text-4xl text-charcoal leading-tight tracking-wide">
-                {product.name}
-              </h1>
+            {/* Title + wishlist */}
+            <div className="space-y-2">
+              {category?.name && (
+                <p className="text-xs text-muted tracking-[0.15em] uppercase hidden lg:block">
+                  {category.name}
+                </p>
+              )}
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="font-serif text-3xl lg:text-4xl text-charcoal leading-tight tracking-wide">
+                  {product.name}
+                </h1>
+                <WishlistButton productId={product.id} className="mt-1 flex-none" />
+              </div>
               {meta?.short_description && (
                 <p className="text-sm text-muted leading-relaxed">{meta.short_description}</p>
               )}
+            </div>
+
+            {/* Price */}
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-baseline gap-3">
                 <span className="text-2xl font-semibold text-charcoal tabular-nums">
                   {formatINR(product.price)}
@@ -180,10 +233,18 @@ export default function GeneralProduct({ product, related }: Props) {
                   </>
                 )}
               </div>
+              {savings > 0 && (
+                <p className="text-xs font-medium text-emerald-700 bg-emerald-50 inline-flex px-2.5 py-1 rounded-full">
+                  You save {formatINR(savings)}
+                </p>
+              )}
               <p className="text-[11px] text-muted/70">Incl. of all taxes · Free shipping above ₹999</p>
+              {product.sku && (
+                <p className="text-[11px] text-muted/60">SKU: {product.sku}</p>
+              )}
             </div>
 
-            <div className="h-px bg-charcoal/10" />
+            <div className="h-px bg-charcoal/8" />
 
             {/* Low stock */}
             {inStock && (product.stock_quantity ?? 0) <= 5 && (
@@ -192,7 +253,7 @@ export default function GeneralProduct({ product, related }: Props) {
               </p>
             )}
 
-            {/* Quantity + CTA */}
+            {/* Qty + CTA */}
             <div className="space-y-3">
               {inStock && (
                 <div className="flex items-center gap-3">
@@ -242,6 +303,16 @@ export default function GeneralProduct({ product, related }: Props) {
               </motion.button>
             </div>
 
+            {/* Share */}
+            <ShareButton title={product.name} />
+
+            <div className="h-px bg-charcoal/8" />
+
+            {/* Pincode estimator */}
+            <PincodeEstimator />
+
+            <div className="h-px bg-charcoal/8" />
+
             {/* Trust badges */}
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -290,6 +361,20 @@ export default function GeneralProduct({ product, related }: Props) {
               ))}
             </div>
 
+            {/* Tags */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[11px] px-2.5 py-1 rounded-full bg-cream text-muted border border-border hover:border-charcoal/30 transition-colors cursor-default"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -299,9 +384,7 @@ export default function GeneralProduct({ product, related }: Props) {
         <div className="max-w-5xl mx-auto">
           <div className="mb-10 lg:mb-12">
             <p className="text-[10px] tracking-[0.25em] uppercase text-white/30 mb-2">Why Alankara</p>
-            <h2 className="font-serif text-2xl lg:text-3xl leading-snug">
-              Crafted for lasting beauty.
-            </h2>
+            <h2 className="font-serif text-2xl lg:text-3xl leading-snug">Crafted for lasting beauty.</h2>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
             {[
@@ -324,23 +407,27 @@ export default function GeneralProduct({ product, related }: Props) {
         <div className="bg-warm-white px-6 sm:px-10 lg:px-20 py-14 lg:py-20">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-end justify-between mb-8">
-              <h2 className="font-serif text-2xl lg:text-3xl text-charcoal tracking-wide">
-                Complete the Look
-              </h2>
+              <h2 className="font-serif text-2xl lg:text-3xl text-charcoal tracking-wide">Complete the Look</h2>
               <Link
-                href={`/products?category=${(product.category as { slug?: string })?.slug ?? ""}`}
+                href={`/products?category=${category?.slug ?? ""}`}
                 className="text-xs tracking-[0.15em] uppercase text-muted hover:text-charcoal transition-colors"
               >
                 View all
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8 lg:gap-x-6">
-              {related.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
+              {related.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Sticky cart bar (mobile) */}
+      <StickyAddToCart product={product} />
+
+      {/* Image zoom modal */}
+      {zoomSrc && (
+        <ImageZoomModal src={zoomSrc} alt={product.name} onClose={() => setZoomSrc(null)} />
       )}
     </>
   );

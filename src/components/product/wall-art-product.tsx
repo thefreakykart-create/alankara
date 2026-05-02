@@ -30,6 +30,11 @@ import {
 } from "@/lib/types/product";
 import ProductCard from "@/components/product/product-card";
 import TryOnWallModal from "@/components/product/try-on-wall-modal";
+import WishlistButton from "@/components/product/wishlist-button";
+import ShareButton from "@/components/product/share-button";
+import PincodeEstimator from "@/components/product/pincode-estimator";
+import StickyAddToCart from "@/components/product/sticky-add-to-cart";
+import ImageZoomModal, { ZoomHint } from "@/components/product/image-zoom-modal";
 
 interface WallArtProductProps {
   product: Product;
@@ -60,6 +65,7 @@ export default function WallArtProduct({ product, variants, related, groupProduc
   const [added, setAdded] = useState(false);
   const [showAR, setShowAR] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null);
 
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartDrawerStore((s) => s.open);
@@ -141,14 +147,39 @@ export default function WallArtProduct({ product, variants, related, groupProduc
     },
   ];
 
+  const meta = product.metadata as Record<string, string> | null;
+  const tags = meta?.tags ? meta.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
+  const savings = activeVariant?.compare_at_price
+    ? activeVariant.compare_at_price - activeVariant.price : 0;
+
   return (
     <>
-      {/* ── Main layout ──
-          Mobile:  stacked — pt-28 clears fixed header, image has explicit aspect ratio
-          Desktop: split-screen — left panel sticky, right panel scrolls with page        */}
-      <div className="flex flex-col lg:flex-row pt-28">
+      {/* Breadcrumb */}
+      <div className="pt-28 px-6 lg:px-10 bg-warm-white">
+        <nav className="flex items-center gap-2 text-xs text-muted tracking-wide py-3">
+          <Link href="/" className="hover:text-charcoal transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/products" className="hover:text-charcoal transition-colors">Shop</Link>
+          {product.category && (
+            <>
+              <span>/</span>
+              <Link
+                href={`/products?category=${(product.category as { slug?: string }).slug ?? ""}`}
+                className="hover:text-charcoal transition-colors"
+              >
+                {(product.category as { name?: string }).name}
+              </Link>
+            </>
+          )}
+          <span>/</span>
+          <span className="text-charcoal truncate max-w-[160px]">{product.name}</span>
+        </nav>
+      </div>
 
-        {/* ── LEFT: sticky image panel — lg:self-start is required for sticky to work ── */}
+      {/* ── Main layout ── */}
+      <div className="flex flex-col lg:flex-row">
+
+        {/* ── LEFT: sticky image panel ── */}
         <div className="relative aspect-[4/5] lg:aspect-auto lg:sticky lg:top-28 lg:h-[calc(100vh-7rem)] lg:w-[58%] lg:self-start flex-none bg-[#F2EDE6] overflow-hidden">
 
           {/* Floating back link */}
@@ -169,34 +200,39 @@ export default function WallArtProduct({ product, variants, related, groupProduc
             </div>
           )}
 
-          {/* Main image with crossfade */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={clampedIndex}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="absolute inset-0"
-            >
-              {fallbackImages[clampedIndex] ? (
-                <Image
-                  src={fallbackImages[clampedIndex]}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 58vw"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-charcoal/20 text-sm tracking-widest uppercase">No image</span>
-                </div>
-              )}
-              {/* Bottom gradient so thumbnails are readable */}
-              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-            </motion.div>
-          </AnimatePresence>
+          {/* Main image with crossfade — click to zoom */}
+          <div
+            className="absolute inset-0 cursor-zoom-in group"
+            onClick={() => fallbackImages[clampedIndex] && setZoomSrc(fallbackImages[clampedIndex])}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={clampedIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="absolute inset-0"
+              >
+                {fallbackImages[clampedIndex] ? (
+                  <Image
+                    src={fallbackImages[clampedIndex]}
+                    alt={product.name}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 58vw"
+                    className="object-cover"
+                    priority
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-charcoal/20 text-sm tracking-widest uppercase">No image</span>
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+              </motion.div>
+            </AnimatePresence>
+            <ZoomHint />
+          </div>
 
           {/* Frame label — bottom left */}
           <div className="absolute bottom-4 left-5 z-20">
@@ -232,30 +268,46 @@ export default function WallArtProduct({ product, variants, related, groupProduc
 
             {/* Name + price */}
             <div className="space-y-3">
-              <h1 className="font-serif text-3xl lg:text-4xl text-charcoal leading-tight tracking-wide">
-                {product.name}
-              </h1>
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="font-serif text-3xl lg:text-4xl text-charcoal leading-tight tracking-wide">
+                  {product.name}
+                </h1>
+                <WishlistButton productId={product.id} className="mt-1 flex-none" />
+              </div>
+              {meta?.short_description && (
+                <p className="text-sm text-muted leading-relaxed">{meta.short_description}</p>
+              )}
 
               {activeVariant ? (
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="text-2xl font-semibold text-charcoal tabular-nums">
-                    {formatINR(activeVariant.price)}
-                  </span>
-                  {activeVariant.compare_at_price && (
-                    <>
-                      <span className="text-base text-muted line-through tabular-nums">
-                        {formatINR(activeVariant.compare_at_price)}
-                      </span>
-                      <span className="text-xs font-bold text-terracotta tracking-widest uppercase">
-                        {discount}% off
-                      </span>
-                    </>
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-baseline gap-3">
+                    <span className="text-2xl font-semibold text-charcoal tabular-nums">
+                      {formatINR(activeVariant.price)}
+                    </span>
+                    {activeVariant.compare_at_price && (
+                      <>
+                        <span className="text-base text-muted line-through tabular-nums">
+                          {formatINR(activeVariant.compare_at_price)}
+                        </span>
+                        <span className="text-xs font-bold text-terracotta tracking-widest uppercase">
+                          {discount}% off
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {savings > 0 && (
+                    <p className="text-xs font-medium text-emerald-700 bg-emerald-50 inline-flex px-2.5 py-1 rounded-full">
+                      You save {formatINR(savings)}
+                    </p>
                   )}
                 </div>
               ) : (
                 <p className="text-sm text-muted">Select options to see pricing</p>
               )}
               <p className="text-[11px] text-muted/70">Incl. of all taxes · Free shipping above ₹999</p>
+              {activeVariant?.sku && (
+                <p className="text-[11px] text-muted/60">SKU: {activeVariant.sku}</p>
+              )}
             </div>
 
             <div className="h-px bg-charcoal/10" />
@@ -479,6 +531,16 @@ export default function WallArtProduct({ product, variants, related, groupProduc
               ))}
             </div>
 
+            {/* Share */}
+            <ShareButton title={product.name} />
+
+            <div className="h-px bg-charcoal/8" />
+
+            {/* Pincode */}
+            <PincodeEstimator />
+
+            <div className="h-px bg-charcoal/8" />
+
             {/* Accordion */}
             <div className="border-t border-border">
               {accordionItems.map((item) => (
@@ -512,9 +574,36 @@ export default function WallArtProduct({ product, variants, related, groupProduc
               ))}
             </div>
 
+            {/* Tags */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[11px] px-2.5 py-1 rounded-full bg-cream text-muted border border-border hover:border-charcoal/30 transition-colors cursor-default"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
           </div>
         </div>
       </div>
+
+      {/* Sticky cart (mobile) */}
+      <StickyAddToCart
+        product={product}
+        overridePrice={activeVariant?.price}
+        onAdd={handleAdd}
+        disabled={!inStock || !activeSize}
+      />
+
+      {/* Image zoom modal */}
+      {zoomSrc && (
+        <ImageZoomModal src={zoomSrc} alt={product.name} onClose={() => setZoomSrc(null)} />
+      )}
 
       {/* ── Why Alankara strip ── */}
       <div className="bg-charcoal text-warm-white px-6 sm:px-10 lg:px-20 py-14 lg:py-20">
